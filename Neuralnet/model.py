@@ -1,3 +1,8 @@
+import warnings
+
+import numpy as np
+
+
 class Sequential:
 
     def __init__(self):
@@ -40,17 +45,40 @@ class Sequential:
         self.optimizer = optimizer
         self.metric = metric
 
+    def save(self, filename):
+        """Save model weights to a file."""
+        from Neuralnet.serialization import save
+        save(self, filename)
+
+    def load(self, filename):
+        """Load model weights from a file."""
+        from Neuralnet.serialization import load
+        load(self, filename)
+
     def fit(
         self,
         X,
         y,
-        epochs=1000
+        epochs=1000,
+        loss=None,
+        optimizer=None,
+        metric=None
     ):
 
-        if self.loss_function is None:
-            raise ValueError(
-                "Compile the model before calling fit()."
+        # Handle deprecated signature for backwards compatibility
+        if loss is not None or optimizer is not None or metric is not None:
+            warnings.warn(
+                "Passing loss, optimizer, or metric to fit() is deprecated. "
+                "Use compile() to configure the model before calling fit().",
+                DeprecationWarning,
+                stacklevel=2
             )
+            if loss is not None:
+                self.loss_function = loss
+            if optimizer is not None:
+                self.optimizer = optimizer
+            if metric is not None:
+                self.metric = metric
 
         history = {
             "loss": []
@@ -63,12 +91,12 @@ class Sequential:
 
             predictions = self.forward(X)
 
-            loss = self.loss_function.forward(
+            loss_value = self.loss_function.forward(
                 y,
                 predictions
             )
 
-            history["loss"].append(loss)
+            history["loss"].append(loss_value)
 
             dloss = self.loss_function.backward(
                 y,
@@ -92,7 +120,7 @@ class Sequential:
                 if epoch % 100 == 0:
                     print(
                         f"Epoch {epoch} "
-                        f"Loss: {loss:.6f} "
+                        f"Loss: {loss_value:.6f} "
                         f"Accuracy: {score:.4f}"
                     )
 
@@ -101,7 +129,7 @@ class Sequential:
                 if epoch % 100 == 0:
                     print(
                         f"Epoch {epoch} "
-                        f"Loss: {loss:.6f}"
+                        f"Loss: {loss_value:.6f}"
                     )
 
         return history

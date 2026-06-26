@@ -37,6 +37,24 @@ class Sigmoid:
         return self.dinputs
 
 
+class Tanh:
+
+    def forward(self, X):
+
+        self.output = np.tanh(X)
+
+        return self.output
+
+    def backward(self, dvalues):
+
+        self.dinputs = (
+            dvalues
+            * (1 - self.output ** 2)
+        )
+
+        return self.dinputs
+
+
 class Softmax:
 
     def forward(self, X):

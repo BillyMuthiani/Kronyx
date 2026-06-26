@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from Neuralnet.model import Sequential
 from Neuralnet.layers import Dense
 from Neuralnet.activations import ReLU, Softmax
-from Neuralnet.losses import CategoricalCrossEntropy
 from Neuralnet.losses import SoftmaxCategoricalCrossEntropy
 from Neuralnet.optimizers import Adam
 from Neuralnet.metrics import Accuracy
@@ -52,21 +51,16 @@ model.add(Softmax())
 
 
 # Step 7: Train
-loss = SoftmaxCategoricalCrossEntropy()
-
-optimizer = Adam(
-    learning_rate=0.001
+model.compile(
+    loss=SoftmaxCategoricalCrossEntropy(),
+    optimizer=Adam(learning_rate=0.001),
+    metric=Accuracy()
 )
-
-metric = Accuracy()
 
 model.fit(
     X_train,
     y_train,
-    loss,
-    optimizer,
-    epochs=5000,
-    metric=metric
+    epochs=5000
 )
 
 
