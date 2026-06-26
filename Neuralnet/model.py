@@ -107,7 +107,8 @@ class Sequential:
         metric=None,
         batch_size=None,
         shuffle=True,
-        validation_data=None
+        validation_data=None,
+        callbacks=None
     ):
 
         if loss is not None or optimizer is not None or metric is not None:
@@ -129,6 +130,14 @@ class Sequential:
                 "Compile the model before calling fit()."
             )
 
+        if callbacks is None:
+            callbacks = []
+
+        logs = {}
+
+        for callback in callbacks:
+            callback.on_train_begin(logs)
+
         history = History()
 
         samples = len(X)
@@ -136,6 +145,9 @@ class Sequential:
         batch_size = batch_size if batch_size is not None else samples
 
         for epoch in range(epochs):
+
+            for callback in callbacks:
+                callback.on_epoch_begin(epoch, logs)
 
             epoch_loss = 0.0
             epoch_accuracy = 0.0
@@ -149,7 +161,10 @@ class Sequential:
                 X_shuffled = X
                 y_shuffled = y
 
-            for start_idx in range(0, samples, batch_size):
+            for batch_idx, start_idx in enumerate(range(0, samples, batch_size)):
+
+                for callback in callbacks:
+                    callback.on_batch_begin(batch_idx, logs)
 
                 end_idx = min(start_idx + batch_size, samples)
                 X_batch = X_shuffled[start_idx:end_idx]
@@ -183,13 +198,19 @@ class Sequential:
                     )
                     epoch_accuracy += score
 
+                for callback in callbacks:
+                    callback.on_batch_end(batch_idx, logs)
+
             avg_loss = epoch_loss / num_batches
 
             history.loss.append(avg_loss)
 
+            logs["loss"] = avg_loss
+
             if self.metric:
                 avg_accuracy = epoch_accuracy / num_batches
                 history.accuracy.append(avg_accuracy)
+                logs["accuracy"] = avg_accuracy
 
             if validation_data is not None:
 
@@ -197,10 +218,24 @@ class Sequential:
                 val_predictions = self.forward(X_val, training=False)
                 val_loss = self.loss_function.forward(y_val, val_predictions)
                 history.val_loss.append(val_loss)
+                logs["val_loss"] = val_loss
 
                 if self.metric:
                     val_accuracy = self.metric.calculate(y_val, val_predictions)
                     history.val_accuracy.append(val_accuracy)
+                    logs["val_accuracy"] = val_accuracy
+
+            logs["epoch"] = epoch
+
+            if self.optimizer is not None:
+                logs["learning_rate"] = getattr(
+                    self.optimizer,
+                    "learning_rate",
+                    None
+                )
+
+            for callback in callbacks:
+                callback.on_epoch_end(epoch, logs)
 
             if epoch % 100 == 0:
                 if self.metric:
@@ -217,5 +252,8 @@ class Sequential:
                     print(msg)
                 else:
                     print(f"Epoch {epoch} Loss: {avg_loss:.6f}")
+
+        for callback in callbacks:
+            callback.on_train_end(logs)
 
         return history

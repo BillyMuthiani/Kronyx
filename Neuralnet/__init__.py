@@ -6,6 +6,7 @@ from Neuralnet.metrics import Accuracy
 from Neuralnet.model import Sequential, History
 from Neuralnet.exceptions import NeuralnetError, ConfigurationError, NotCompiledError, ShapeError, OptimizerError
 from Neuralnet.initializers import he_normal, xavier_uniform, lecun_normal
+from Neuralnet.callbacks import Callback
 
 __version__ = "0.6.0"
 
@@ -31,5 +32,6 @@ __all__ = [
     "he_normal",
     "xavier_uniform",
     "lecun_normal",
+    "Callback",
     "__version__",
 ]
