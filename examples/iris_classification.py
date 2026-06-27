@@ -9,6 +9,8 @@ from Neuralnet.activations import ReLU, Softmax
 from Neuralnet.losses import SoftmaxCategoricalCrossEntropy
 from Neuralnet.optimizers import Adam
 from Neuralnet.metrics import Accuracy
+# Optional: Uncomment to save best model during training
+# from Neuralnet.callbacks import ModelCheckpoint
 
 
 # Step 3: Load Iris Dataset
@@ -61,6 +63,7 @@ model.fit(
     X_train,
     y_train,
     epochs=5000
+    # Optional: Add callbacks=[ModelCheckpoint("checkpoints/best.npz")] for auto-save
 )
 
 

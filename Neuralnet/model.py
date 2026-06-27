@@ -92,6 +92,15 @@ class Sequential:
         from Neuralnet.serialization import save
         save(self, filename)
 
+    def save_weights(self, filename):
+        """Save model weights to a file.
+
+        Args:
+            filename: Path where weights will be saved.
+        """
+        from Neuralnet.serialization import save
+        save(self, filename)
+
     def load(self, filename):
         """Load model weights from a file."""
         from Neuralnet.serialization import load
