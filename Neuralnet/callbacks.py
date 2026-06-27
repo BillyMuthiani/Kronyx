@@ -136,6 +136,81 @@ class ModelCheckpoint(Callback):
             self.model.save(self.filepath)
 
 
+class CSVLogger(Callback):
+    """Callback that logs training metrics to a CSV file.
+
+    Writes epoch-level metrics to a CSV file at the end of each epoch.
+    Automatically handles file creation and appending.
+    """
+
+    def __init__(self, filepath, separator=",", append=False):
+        """Initialize the CSVLogger callback.
+
+        Args:
+            filepath: Path where the CSV log will be saved. Parent directories will
+                be created automatically if they don't exist.
+            separator: Column separator character. Defaults to ",".
+            append: If True, append to existing file without duplicating headers.
+                If False, overwrite existing file. Defaults to False.
+        """
+        if not filepath:
+            raise ValueError("filepath must be a non-empty string")
+
+        self.filepath = filepath
+        self.separator = separator
+        self.append = append
+        self.keys = None
+
+    def on_train_begin(self, logs=None):
+        """Initialize file and determine which metrics to log.
+
+        Args:
+            logs: Dictionary of training logs (may be None).
+        """
+        import os
+        parent_dir = os.path.dirname(self.filepath)
+        if parent_dir and not os.path.exists(parent_dir):
+            os.makedirs(parent_dir, exist_ok=True)
+
+        if logs:
+            self.keys = sorted([k for k in logs.keys() if k != "epoch"])
+
+    def on_epoch_end(self, epoch, logs=None):
+        """Write metrics to CSV file at the end of each epoch.
+
+        Args:
+            epoch: Current epoch number (0-indexed).
+            logs: Dictionary containing training metrics from the current epoch.
+        """
+        if logs is None:
+            return
+
+        if self.keys is None:
+            self.keys = sorted([k for k in logs.keys() if k != "epoch"])
+
+        if not self.append and epoch == 0:
+            self._write_header()
+
+        self._write_row(epoch, logs)
+
+    def _write_header(self):
+        """Write the CSV header row."""
+        with open(self.filepath, "w") as f:
+            header = [str(k) for k in self.keys]
+            f.write(self.separator.join(header) + "\n")
+
+    def _write_row(self, epoch, logs):
+        """Write a data row to the CSV file.
+
+        Args:
+            epoch: Current epoch number.
+            logs: Dictionary of metrics to log.
+        """
+        with open(self.filepath, "a") as f:
+            values = [str(logs.get(k, "")) for k in self.keys]
+            f.write(self.separator.join(values) + "\n")
+
+
 class EarlyStopping(Callback):
     """Callback that stops training when a monitored metric stops improving.
 
