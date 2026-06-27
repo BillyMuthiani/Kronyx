@@ -36,4 +36,4 @@ class L2:
         Returns:
             Gradient array of same shape as weights.
         """
-        return self.lambda_ * weights
+        return 2 * self.lambda_ * weights

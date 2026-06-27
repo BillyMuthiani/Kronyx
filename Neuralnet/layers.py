@@ -108,7 +108,11 @@ class Dropout:
         Returns:
             Gradient values with dropout mask applied.
         """
-        return dvalues * self.mask / (1 - self.rate)
+        if self.mask is not None:
+            self.dinputs = dvalues * self.mask / (1 - self.rate)
+        else:
+            self.dinputs = dvalues
+        return self.dinputs
 
 
 class BatchNormalization:
@@ -175,8 +179,10 @@ class BatchNormalization:
 
             return self.gamma * self.normalized + self.beta
         else:
-            normalized = (X - self.running_mean) / np.sqrt(self.running_variance + self.epsilon)
-            return self.gamma * normalized + self.beta
+            self.input = X  # Store for gradient checking
+            self.std = np.sqrt(self.running_variance + self.epsilon)
+            self.normalized = (X - self.running_mean) / self.std
+            return self.gamma * self.normalized + self.beta
 
     def backward(self, dvalues):
         """Backward pass for batch normalization gradients.
@@ -187,6 +193,16 @@ class BatchNormalization:
         Returns:
             Gradient with respect to inputs.
         """
+        # Check if we have training statistics (needed for backward)
+        # Inference mode: running stats are constants, so gradient is simpler
+        if self.normalized is None or self.mean is None or self.var is None:
+            # Inference mode: use running stats as constants
+            # gradient of (x - mean) / std * gamma + beta w.r.t. x is just gamma / std
+            self.dinputs = dvalues * (self.gamma / self.std)
+            self.dgamma = np.sum(dvalues * self.normalized, axis=0, keepdims=True)
+            self.dbeta = np.sum(dvalues, axis=0, keepdims=True)
+            return self.dinputs
+        
         N = self.input.shape[0]
 
         dgamma = np.sum(dvalues * self.normalized, axis=0, keepdims=True)
@@ -215,6 +231,7 @@ class BatchNormalization:
             dmean / N
         )
 
+        self.dinputs = dinputs
         return dinputs
 
 
@@ -453,6 +470,7 @@ class Conv2D:
         else:
             dinputs = dinputs_padded
 
+        self.dinputs = dinputs
         return dinputs
 
 
