@@ -4,7 +4,7 @@ from Neuralnet.initializers import he_normal, xavier_uniform, lecun_normal
 
 class Dense:
 
-    def __init__(self, input_size, output_size, initializer="he_normal"):
+    def __init__(self, input_size, output_size, initializer="he_normal", kernel_regularizer=None):
 
         init_func = {
             "he_normal": he_normal,
@@ -20,6 +20,8 @@ class Dense:
 
         self.weights = init_func(input_size, output_size)
         self.biases = np.zeros((1, output_size))
+        self.kernel_regularizer = kernel_regularizer
+        self.regularization_loss = 0.0
 
     def forward(self, X, training=True):
 
@@ -45,6 +47,10 @@ class Dense:
             dvalues,
             self.weights.T
         )
+
+        if self.kernel_regularizer is not None:
+            self.dweights += self.kernel_regularizer.gradient(self.weights)
+            self.regularization_loss = self.kernel_regularizer.loss(self.weights)
 
         return self.dinputs
 
@@ -210,3 +216,42 @@ class BatchNormalization:
         )
 
         return dinputs
+
+
+class Flatten:
+    """Flatten layer for reshaping multi-dimensional inputs.
+
+    Flattens input tensors from shape (batch, ...) to (batch, features) during
+    forward pass. Restores original shape during backward pass.
+    """
+
+    def __init__(self):
+        """Initialize the Flatten layer."""
+        self.input_shape = None
+
+    def forward(self, X, training=True):
+        """Flatten input to 2D shape (batch, features).
+
+        Args:
+            X: Input array of any shape.
+            training: Ignored (included for API consistency).
+
+        Returns:
+            Flattened array of shape (batch, features) where features is the
+            product of all dimensions after the batch dimension.
+        """
+        if training:
+            self.input_shape = X.shape
+
+        return X.reshape(X.shape[0], -1)
+
+    def backward(self, dvalues):
+        """Restore original input shape from flattened gradients.
+
+        Args:
+            dvalues: Gradient values of shape (batch, features).
+
+        Returns:
+            Gradient values reshaped to original input dimensions.
+        """
+        return dvalues.reshape(self.input_shape)

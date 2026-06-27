@@ -189,7 +189,12 @@ class Sequential:
                     predictions
                 )
 
-                epoch_loss += loss_value
+                reg_loss = sum(
+                    getattr(layer, "regularization_loss", 0.0)
+                    for layer in self.layers
+                )
+
+                epoch_loss += loss_value + reg_loss
                 num_batches += 1
 
                 dloss = self.loss_function.backward(
