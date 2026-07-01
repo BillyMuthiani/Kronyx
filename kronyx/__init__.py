@@ -24,6 +24,7 @@ from kronyx.metrics import Accuracy
 from kronyx.model import History, Sequential
 from kronyx.optimizers import SGD, Adam
 from kronyx.regularizers import L2
+from kronyx.serialization import SerializationError, from_json, load_model
 from kronyx.utils import set_seed
 from kronyx.version import __version__
 
@@ -60,5 +61,8 @@ __all__ = [
     "ReduceLROnPlateau",
     "L2",
     "set_seed",
+    "load_model",
+    "from_json",
+    "SerializationError",
     "__version__",
 ]

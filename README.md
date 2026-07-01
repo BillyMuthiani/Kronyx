@@ -103,8 +103,73 @@ kronyx/
 ├── callbacks.py      # Callback base, EarlyStopping, etc.
 ├── regularizers.py   # L2
 ├── initializers.py   # he_normal, xavier_uniform, lecun_normal
+├── serialization.py  # Save/load model (.krx format)
 └── exceptions.py     # Error types
 ```
+
+## Model Serialization
+
+Kronyx supports saving and loading complete models and weights using the `.krx` format.
+
+### Saving and Loading Models
+
+```python
+# Save complete model
+model.save('model.krx')
+
+# Load complete model
+loaded = load_model('model.krx')
+```
+
+### Saving and Loading Weights Only
+
+```python
+# Save only trainable weights
+model.save_weights('weights.npz')
+
+# Load weights into compatible architecture
+model.load_weights('weights.npz')
+```
+
+### JSON Export/Import
+
+```python
+# Export architecture to JSON
+json_str = model.to_json()
+
+# Create model from JSON
+model = Sequential.from_json(json_str)
+```
+
+### .krx Archive Format
+
+The `.krx` format is a zip archive containing:
+
+```
+model.krx
+├── metadata.json      # Framework version, Python/numpy versions, timestamp
+├── architecture.json  # Layer configuration, loss, optimizer settings
+├── weights.npz        # Trainable weights and biases (numpy archive)
+└── optimizer.npz      # Optional: optimizer state for resumable training
+```
+
+Metadata fields:
+- `framework`: Always "kronyx"
+- `version`: Framework version
+- `format_version`: Archive format version (currently 1)
+- `python_version`: Python version used for saving
+- `numpy_version`: NumPy version used for saving
+- `created_at`: ISO 8601 timestamp
+
+Architecture fields:
+- `layers`: List of layer configurations with types and shapes
+- `optimizer`: Optimizer type and learning rate
+- `loss`: Loss function class name
+- `metric`: Metric class name (if any)
+
+Weights are stored as NumPy arrays in the `weights.npz` file:
+- `w{i}`: Weights for trainable layer i
+- `b{i}`: Biases for trainable layer i
 
 ## Roadmap
 

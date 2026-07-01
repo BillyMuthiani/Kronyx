@@ -141,6 +141,23 @@ class Sequential:
         self.loss_function = None
         self.metric = None
 
+    @classmethod
+    def from_json(cls, json_string):
+        """Create a model from JSON architecture string.
+
+        Args:
+            json_string: JSON string containing architecture.
+
+        Returns:
+            Sequential model with layers matching the architecture.
+
+        Raises:
+            SerializationError: If JSON is invalid or unsupported layer types.
+        """
+        from kronyx.serialization import from_json as _from_json
+        model = _from_json(json_string)
+        return model
+
     def add(self, layer):
         """Add a layer to the model.
 
@@ -256,22 +273,43 @@ class Sequential:
         print("=" * 60)
 
     def save(self, filename):
-        """Save model weights to a file.
+        """Save complete model to .krx format.
 
         Args:
-            filename: Path where weights will be saved.
+            filename: Path to save (should end with .krx).
         """
-        from kronyx.serialization import save
-        save(self, filename)
+        from kronyx.serialization import save_model as _save_model
+        _save_model(self, filename)
 
     def save_weights(self, filename):
-        """Save model weights to a file.
+        """Save model weights to a .npz file.
 
         Args:
             filename: Path where weights will be saved.
         """
-        from kronyx.serialization import save
-        save(self, filename)
+        from kronyx.serialization import save as _save
+        _save(self, filename)
+
+    def load_weights(self, filename):
+        """Load model weights from a .npz file.
+
+        Args:
+            filename: Path to load weights from.
+
+        Raises:
+            SerializationError: If loading fails or architecture incompatible.
+        """
+        from kronyx.serialization import load as _load
+        _load(self, filename)
+
+    def to_json(self):
+        """Export model architecture to JSON string.
+
+        Returns:
+            JSON string containing model architecture.
+        """
+        from kronyx.serialization import to_json as _to_json
+        return _to_json(self)
 
     def load(self, filename):
         """Load model weights from a file.
