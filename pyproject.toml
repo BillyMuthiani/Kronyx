@@ -62,10 +62,10 @@ dataframe = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Kronyx/kronyx"
+Homepage = "https://github.com/BillyMuthiani/Kronyx"
 Documentation = "https://kronyx.github.io/kronyx"
-Repository = "https://github.com/Kronyx/kronyx"
-Issues = "https://github.com/Kronyx/kronyx/issues"
+Repository = "https://github.com/BillyMuthiani/Kronyx"
+Issues = "https://github.com/BillyMuthiani/Kronyx/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
