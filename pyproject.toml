@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kronyx"
-version = "0.6.0"
+version = "1.0.0"
 description = "A lightweight deep learning framework built from scratch using NumPy"
 readme = "README.md"
 license = "MIT"
