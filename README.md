@@ -1,30 +1,54 @@
-# Kronyx
+<p align="center">
+  <a href="https://github.com/BillyMuthiani/Kronyx">
+    <img src="assets/logo.png" alt="Kronyx" width="650">
+  </a>
+</p>
 
-A lightweight deep learning framework built from first principles using NumPy. Designed for education, research, and production use with a clean Keras-like API.
+<h1 align="center">Kronyx</h1>
 
-[![PyPI](https://img.shields.io/badge/PyPI-kronyx-blue.svg)](https://pypi.org/project/kronyx/)
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://kronyx.github.io/kronyx)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://github.com/Kronyx/kronyx/actions/workflows/tests.yml/badge.svg)](https://github.com/Kronyx/kronyx/actions/workflows/tests.yml)
-[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
-[![mypy](https://img.shields.io/badge/types-mypy-blue.svg)](https://mypy-lang.org/)
+<p align="center">
+<b>Built from Scratch • NumPy Powered • Educational Deep Learning Framework</b>
+</p>
 
-## Features
+<p align="center">
+A lightweight deep learning framework that makes neural networks easy to learn, inspect, visualize, and build.
+</p>
 
-| Feature | Description |
-|---------|-------------|
-| **Pure NumPy** | No external ML dependencies, just NumPy |
-| **Clean API** | Keras-like Sequential model interface |
-| **Educational** | Built for learning with visualization and inspection tools |
-| **Layers** | Dense, Conv2D, Flatten, Dropout, BatchNormalization |
-| **Activations** | ReLU, Sigmoid, Tanh, Softmax |
-| **Optimizers** | SGD, Adam with full state management |
-| **Callbacks** | EarlyStopping, ModelCheckpoint, CSVLogger, ReduceLROnPlateau |
-| **Serialization** | Save/load models with .krx format |
-| **Visualization** | `history.plot()`, `model.visualize()`, `model.summary()` |
+<p align="center">
 
-## Installation
+[![PyPI](https://img.shields.io/pypi/v/kronyx?style=for-the-badge)](https://pypi.org/project/kronyx/)
+[![Python](https://img.shields.io/pypi/pyversions/kronyx?style=for-the-badge)](https://pypi.org/project/kronyx/)
+[![License](https://img.shields.io/github/license/BillyMuthiani/Kronyx?style=for-the-badge)](LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/BillyMuthiani/Kronyx/tests.yml?style=for-the-badge&label=Tests)](https://github.com/BillyMuthiani/Kronyx/actions)
+[![Documentation](https://img.shields.io/badge/docs-online-blue?style=for-the-badge)](https://kronyx.github.io/kronyx)
+
+</p>
+
+---
+
+## Why Kronyx?
+
+Most deep learning frameworks are designed primarily for production.
+
+**Kronyx is designed to help you understand deep learning.**
+
+Whether you're learning neural networks, teaching machine learning, prototyping new ideas, or building lightweight AI applications, Kronyx provides a familiar Keras-like API with tools that make every layer transparent.
+
+### What makes Kronyx different?
+
+- Built entirely from **NumPy**
+- Designed for **education first**
+- 📈 Built-in training visualizations (`history.plot()`)
+- Rich model inspection (`model.summary()`)
+- Architecture visualization (`model.visualize()`)
+- Native `.krx` model serialization
+- ⚡ Lightweight with zero heavyweight ML dependencies
+- Familiar Sequential API inspired by Keras
+- 📦 Installable directly from PyPI
+
+---
+
+## 🚀 Installation
 
 ```bash
 pip install kronyx
@@ -33,203 +57,122 @@ pip install kronyx
 For development:
 
 ```bash
-git clone https://github.com/Kronyx/kronyx.git
-cd kronyx
+git clone https://github.com/BillyMuthiani/Kronyx.git
+
+cd Kronyx
+
 pip install -e ".[dev]"
 ```
 
-## Quick Start
+For plotting support:
 
-```python
-import numpy as np
-from kronyx import Sequential, Dense, ReLU, Sigmoid, BinaryCrossEntropy, Adam, Accuracy
-
-# XOR problem - binary classification
-X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-y = np.array([[0], [1], [1], [0]])
-
-model = Sequential()
-model.add(Dense(2, 8))  # input_size=2, output_size=8
-model.add(ReLU())
-model.add(Dense(8, 1))
-model.add(Sigmoid())
-
-model.compile(
-    loss=BinaryCrossEntropy(),
-    optimizer=Adam(learning_rate=0.1),
-    metric=Accuracy()
-)
-
-model.fit(X, y, epochs=1000)
-predictions = model.predict(X)
-print(f"Accuracy: {(predictions.round() == y).mean():.2%}")
+```bash
+pip install kronyx[plotting]
 ```
 
-## Binary Classification Example
+For DataFrame support:
+
+```bash
+pip install kronyx[dataframe]
+```
+
+---
+
+## ⚡ Quick Example
 
 ```python
 import numpy as np
-from kronyx import Sequential, Dense, ReLU, Sigmoid, BinaryCrossEntropy, Adam, Accuracy
+from kronyx import *
 
-X_train = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-y_train = np.array([[0], [1], [1], [0]])
+X = np.array([
+    [0,0],
+    [0,1],
+    [1,0],
+    [1,1]
+])
+
+y = np.array([
+    [0],
+    [1],
+    [1],
+    [0]
+])
 
 model = Sequential()
-model.add(Dense(2, 16))
+
+model.add(Dense(2,16))
 model.add(ReLU())
-model.add(Dense(16, 1))
+
+model.add(Dense(16,1))
 model.add(Sigmoid())
 
 model.compile(
     loss=BinaryCrossEntropy(),
-    optimizer=Adam(learning_rate=0.1),
+    optimizer=Adam(),
     metric=Accuracy()
 )
 
-history = model.fit(X_train, y_train, epochs=500)
+history = model.fit(X,y,epochs=1000)
+
+history.plot()
+
 model.summary()
+
+model.visualize()
+
+model.save("xor.krx")
 ```
 
-## Multi-class Classification Example
+---
 
-```python
-import numpy as np
-from kronyx import Sequential, Dense, ReLU, SoftmaxCategoricalCrossEntropy, Adam, Accuracy
+# Features
 
-# One-hot encoded labels
-X = np.random.randn(100, 4)
-y = np.eye(3)[np.random.randint(0, 3, 100)]
+| | |
+|:--|:--|
+| Backend | Pure NumPy |
+| Educational | Built for learning neural networks |
+| API | Keras-like Sequential interface |
+| 📊 Visualization | `history.plot()` |
+| Inspection | `model.summary()` |
+| Architecture | `model.visualize()` |
+| Serialization | `.krx` format |
+| Optimizers | SGD, Adam |
+| Losses | BCE, CCE |
+|  Metrics | Accuracy |
+| Callbacks | EarlyStopping, CSVLogger, ModelCheckpoint |
+| Type Checked | mypy |
+| Linted | Ruff |
+| Distribution | PyPI |
 
-model = Sequential()
-model.add(Dense(4, 32))
-model.add(ReLU())
-model.add(Dense(32, 3))
-model.add(Softmax())
+---
 
-model.compile(
-    loss=SoftmaxCategoricalCrossEntropy(),
-    optimizer=Adam(learning_rate=0.01),
-    metric=Accuracy()
-)
+# 📚 Documentation
 
-model.fit(X, y, epochs=100)
-```
+| Guide | Description |
+|--------|-------------|
+| [Getting Started](docs/getting_started.md) | Installation and first model |
+| [Sequential API](docs/sequential.md) | Building models |
+| [Layers](docs/layers.md) | Dense, Conv2D, Flatten, Dropout |
+| [Callbacks](docs/callbacks.md) | EarlyStopping, CSVLogger |
+| [Serialization](docs/serialization.md) | Saving and loading `.krx` models |
+| [Examples](docs/examples.md) | Complete working examples |
+| [Roadmap](ROADMAP.md) | Future development |
+| [Changelog](CHANGELOG.md) | Release history |
 
-## Convolutional Neural Network Example
+# 🌟 Vision
 
-```python
-import numpy as np
-from kronyx import Sequential, Conv2D, ReLU, Flatten, Dense, Softmax
+Kronyx exists to make deep learning understandable.
 
-# Simple image input (batch, height, width, channels)
-X = np.random.randn(10, 8, 8, 1)
-y = np.eye(2)[np.random.randint(0, 2, 10)]
+Instead of treating neural networks as black boxes, Kronyx exposes every layer, every parameter, and every training step through intuitive visualization and inspection tools.
 
-model = Sequential()
-model.add(Conv2D(filters=8, kernel_size=3, padding='same'))
-model.add(ReLU())
-model.add(Flatten())
-model.add(Dense(64, 2))
-model.add(Softmax())
+Our mission is to become the best framework for learning how deep learning works under the hood.
 
-model.compile(
-    loss=SoftmaxCategoricalCrossEntropy(),
-    optimizer=Adam(learning_rate=0.01),
-    metric=Accuracy()
-)
+---
 
-model.fit(X, y, epochs=10)
-```
+<p align="center">
 
-## Saving and Loading Models
+Made with ❤️ using NumPy.
 
-```python
-# Save complete model with architecture, weights, and configuration
-model.save('model.krx')
+⭐ If Kronyx helps you learn or build, consider giving the repository a star.
 
-# Load complete model
-loaded = load_model('model.krx')
-
-# Continue training or make predictions
-loaded.predict(X_test)
-```
-
-## Saving and Loading Weights
-
-```python
-# Save only trainable weights
-model.save_weights('weights.npz')
-
-# Create a new model with matching architecture
-new_model = Sequential()
-new_model.add(Dense(2, 8))
-new_model.add(ReLU())
-new_model.add(Dense(8, 1))
-new_model.add(Sigmoid())
-
-# Load weights into the new model
-new_model.load_weights('weights.npz')
-```
-
-## Exporting JSON Architecture
-
-```python
-# Export architecture to JSON string
-json_str = model.to_json()
-
-# Create model from JSON (weights initialized randomly)
-model = Sequential.from_json(json_str)
-```
-
-## .krx Archive Format
-
-The `.krx` format is a zip archive containing:
-
-```
-model.krx
-├── metadata.json      # Framework version, Python/numpy versions, timestamp
-├── architecture.json  # Layer configuration, loss, optimizer settings
-├── weights.npz        # Trainable weights and biases (numpy archive)
-└── optimizer.npz      # Optional: optimizer state for resumable training
-```
-
-## Examples
-
-- `examples/xor.py` - XOR problem with binary classification
-- `examples/iris_classification.py` - Iris dataset multi-class classification
-- `examples/iris_dropout.py` - Dropout regularization example
-- `examples/iris_l2.py` - L2 weight regularization
-- `examples/batchnorm_iris.py` - Batch normalization demonstration
-- `examples/flatten_demo.py` - Multi-dimensional input handling
-- `examples/conv2d_demo.py` - Convolutional neural network example
-- `examples/mnist_classifier.py` - MNIST digit classification
-
-## Documentation
-
-```
-kronyx/
-├── activations.py    # ReLU, Sigmoid, Tanh, Softmax
-├── layers.py         # Dense, Conv2D, Flatten, Dropout, BatchNormalization
-├── model.py          # Sequential, History
-├── optimizers.py     # SGD, Adam
-├── losses.py         # BinaryCrossEntropy, CategoricalCrossEntropy
-├── metrics.py        # Accuracy
-├── callbacks.py      # Callback base, EarlyStopping, etc.
-├── regularizers.py   # L2
-├── initializers.py   # he_normal, xavier_uniform, lecun_normal
-├── serialization.py  # Save/load model (.krx format)
-├── utils.py          # Utility functions
-└── exceptions.py     # Error types
-```
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for planned features.
-
-## License
-
-MIT License - see [LICENSE](LICENSE)
+</p>

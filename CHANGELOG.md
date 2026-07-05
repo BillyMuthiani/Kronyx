@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-07-01
+## [1.0.1] - 2026-07-05
+
+### Added
+
+- Educational tools for model understanding:
+  - `History.plot()` - Visualize training metrics with matplotlib
+  - `History.to_dataframe()` - Convert history to pandas DataFrame
+  - `model.count_params()` - Count total trainable parameters
+  - `model.layer_summary()` - Get structured layer information
+  - `model.visualize()` - ASCII/graphviz architecture diagrams
+- Enhanced `model.summary()` with professional Keras-style formatting
+
+## [0.6.0] - 2026-07-01
 
 ### Added
 
@@ -19,12 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `from_json(json_string)` - Module-level JSON deserialization
 - `SerializationError` exception class for all serialization failures
 - Cross-platform compatibility (Windows/Linux/macOS)
-- `History.plot()` - Visualize training metrics with matplotlib
-- `History.to_dataframe()` - Convert history to pandas DataFrame
-- `model.count_params()` - Count total trainable parameters
-- `model.layer_summary()` - Get structured layer information
-- `model.visualize()` - ASCII/graphviz architecture diagrams
-- Enhanced `model.summary()` - Professional Keras-style formatting
 
 ### Changed
 
