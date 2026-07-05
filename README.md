@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/BillyMuthiani/Kronyx">
-    <img src="assets/logo.png" alt="Kronyx" width="650">
+    <img src="kronyx/assets/logo.png" alt="Kronyx" width="650">
   </a>
 </p>
 
