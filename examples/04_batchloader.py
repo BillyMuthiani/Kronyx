@@ -5,7 +5,7 @@ during neural network training.
 """
 
 from kronyx import set_seed
-from kronyx.data import BatchLoader, train_test_split
+from kronyx.data import BatchLoader, TensorDataset, train_test_split
 from kronyx.datasets import blobs
 
 # Set seed for reproducibility
@@ -35,8 +35,8 @@ print(f"\nNumber of batches: {len(loader)}")
 
 # Iterate over batches
 print("\nIterating over batches:")
-for i, (X_batch, y_batch) in enumerate(loader):
-    print(f"  Batch {i+1}: X shape = {X_batch.shape}, y shape = {y_batch.shape}")
+for i, (_X_batch, y_batch) in enumerate(loader):
+    print(f"  Batch {i+1}: X shape = {_X_batch.shape}, y shape = {y_batch.shape}")
     if i >= 2:
         print("  ...")
         break
@@ -52,8 +52,6 @@ loader_drop = BatchLoader(
 print(f"\nWith drop_last=True, batches: {len(loader_drop)}")
 
 # TensorDataset example
-from kronyx.data import TensorDataset
-
 dataset = TensorDataset(X_train, y_train)
 print(f"\nTensorDataset length: {len(dataset)}")
 X0, y0 = dataset[0]

@@ -13,9 +13,11 @@ from kronyx import (
     ReLU,
     Sequential,
     Sigmoid,
+    Softmax,
+    SoftmaxCategoricalCrossEntropy,
     set_seed,
 )
-from kronyx.datasets import moons
+from kronyx.datasets import moons, spiral
 from kronyx.metrics import ConfusionMatrix
 from kronyx.visualization import plot_confusion_matrix
 
@@ -59,9 +61,6 @@ print("\nPlotting confusion matrix...")
 plot_confusion_matrix(cm, classes=["Class 0", "Class 1"])
 
 # Multi-class example
-from kronyx import Softmax, SoftmaxCategoricalCrossEntropy
-from kronyx.datasets import spiral
-
 X, y = spiral(samples=300, classes=3)
 
 model2 = Sequential()
