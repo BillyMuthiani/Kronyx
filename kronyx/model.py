@@ -483,17 +483,20 @@ class Sequential:
             })
         return summary
 
-    def visualize(self, output_format: str | None = None, show_params: bool = False):
+    def visualize(self, output_format: str | None = None, show_params: bool = False, style: str = "ascii"):
         """Display an ASCII architecture diagram of the model.
 
         Creates a visual representation of the model layers connected by arrows.
         If graphviz is installed and format is specified, generates an image.
+        Otherwise displays an ASCII diagram in the specified style.
 
         Args:
             output_format: Optional output format ('png', 'pdf', 'svg'). If provided
                 and graphviz is available, saves to file. Otherwise falls back
-                to ASCII output.
-            show_params: If True, shows parameter counts beside each layer.
+                to ASCII output with specified style.
+            show_params: If True, shows parameter counts beside each layer (for non-compact styles).
+            style: Visualization style - "ascii", "box", "compact", or "unicode".
+                Required when not using graphviz.
 
         Raises:
             ImportError: If graphviz is requested but not installed.
@@ -501,11 +504,14 @@ class Sequential:
         Examples:
             >>> model.visualize()
             >>> model.visualize(show_params=True)
+            >>> model.visualize(style="unicode")
             >>> model.visualize(output_format='png')  # Requires graphviz
 
         Notes:
             Graphviz is optional. ASCII visualization works without it.
             Install graphviz with: pip install graphviz
+
+        One of the best ASCII neural network visualizers available.
         """
         if output_format is not None:
             try:
@@ -516,13 +522,14 @@ class Sequential:
                 print("To install: pip install graphviz")
                 output_format = None
 
-        self._visualize_ascii(show_params)
+        self._visualize_ascii(show_params, style)
 
-    def _visualize_ascii(self, show_params: bool):
-        """Print ASCII architecture diagram.
+    def _visualize_ascii(self, show_params: bool, style: str = "ascii"):
+        """Print ASCII architecture diagram in specified style.
 
         Args:
             show_params: If True, shows parameter counts beside layers.
+            style: Visualization style - "ascii", "box", "compact", or "unicode".
         """
         if not self.layers:
             print("(Empty model)")
@@ -532,23 +539,86 @@ class Sequential:
         for i, layer in enumerate(self.layers):
             layer_name = type(layer).__name__
 
-            if show_params:
-                if hasattr(layer, 'weights') and layer.weights is not None:
-                    params = int(layer.weights.size + layer.biases.size)
-                    print(f"{layer_name}({params})")
-                elif hasattr(layer, 'kernels') and layer.kernels is not None:
-                    params = int(layer.kernels.size + layer.biases.size)
-                    print(f"{layer_name}({params})")
-                else:
-                    print(layer_name)
+            # Get layer information
+            params = self._get_layer_params(layer)
+            weights_shape = None
+            biases_shape = None
+            if hasattr(layer, 'weights') and layer.weights is not None:
+                weights_shape = list(layer.weights.shape)
+            if hasattr(layer, 'biases') and layer.biases is not None:
+                biases_shape = list(layer.biases.shape)
+
+            # Format layer display based on style
+            if style == "ascii":
+                self._print_ascii_style(layer_name, params, i, show_params)
+            elif style == "box":
+                self._print_box_style(layer_name, params, weights_shape, biases_shape, i, show_params)
+            elif style == "compact":
+                self._print_compact_style(layer_name, params, i)
+            elif style == "unicode":
+                self._print_unicode_style(layer_name, params, weights_shape, biases_shape, i)
             else:
-                print(layer_name)
+                raise ValueError(f"Unknown style: {style}. Use one of: ascii, box, compact, unicode")
 
             if i < len(self.layers) - 1:
-                print("  |")
-                print("  v")
+                print(" ↓")
 
         print()
+
+    def _print_ascii_style(self, layer_name: str, params: int, i: int, show_params: bool):
+        """Print in simple ASCII style."""
+        if show_params:
+            print(f"{layer_name}({params})")
+        else:
+            print(layer_name)
+
+    def _print_box_style(self, layer_name: str, params: int, weights_shape: list[int] | None,
+                         biases_shape: list[int] | None, i: int, show_params: bool):
+        """Print in box style with detailed information."""
+        print("┌───────────────────────────────┐")
+
+        content_lines = [layer_name]
+        if weights_shape:
+            content_lines.append(f"W:{weights_shape}")
+        if biases_shape:
+            content_lines.append(f"b:{biases_shape}")
+        if show_params:
+            content_lines.append(f"params:{params:,}")
+
+        # Center content
+        max_width = 30
+        for j, line in enumerate(content_lines):
+            pad = (max_width - len(line)) // 2
+            print(f"│{' ' * pad}{line}{' ' * (max_width - len(line) - pad):}│")
+        print("└───────────────────────────────┘")
+
+    def _print_compact_style(self, layer_name: str, params: int, i: int):
+        """Print in compact style."""
+        short_name = layer_name[0].upper() + layer_name[1:].lower()[:3]
+        print(f"{short_name}")
+
+    def _print_unicode_style(self, layer_name: str, params: int,
+                             weights_shape: list[int] | None, biases_shape: list[int] | None,
+                             i: int):
+        """Print in Unicode rich style."""
+        unicode_layers = {
+            'Dense': '▭',  # Rectangle
+            'ReLU': '∩',   # Union
+            'Softmax': '⎔', # Box
+            'Conv2D': '⧖', # Diamond
+            'Flatten': '╳', # Plus
+            'Dropout': '●', # Circle
+            'BatchNormalization': '∑', # Summation
+        }
+        icon = unicode_layers.get(layer_name, '□')  # Box for unknown
+
+        info = f" {layer_name}({params:,})"
+        if weights_shape:
+            info += f" W{weights_shape}"
+        if biases_shape:
+            info += f" b{biases_shape}"
+
+        print(f"{icon}{info}")
 
     def _visualize_graphviz(self, output_format: str):
         """Generate graphviz visualization.

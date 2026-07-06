@@ -18,6 +18,10 @@ A lightweight deep learning framework built from first principles using NumPy.
 | **Optimizers** | SGD, Adam with full state management |
 | **Callbacks** | EarlyStopping, ModelCheckpoint, CSVLogger, ReduceLROnPlateau |
 | **Serialization** | Save/load models with .krx format |
+| **Datasets** | xor, spiral, circles, moons, blobs, iris |
+| **Preprocessing** | StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder |
+| **Metrics** | Accuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
+| **Visualization** | plot_training_curves, plot_decision_boundary, plot_confusion_matrix |
 
 ## Quick Example
 

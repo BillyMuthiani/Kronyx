@@ -127,22 +127,25 @@ model.save("xor.krx")
 
 # Features
 
-| | |
+| | | |
 |:--|:--|
 | Backend | Pure NumPy |
 | Educational | Built for learning neural networks |
 | API | Keras-like Sequential interface |
-| 📊 Visualization | `history.plot()` |
+| 📊 Visualization | `history.plot()`, `plot_decision_boundary()`, `plot_confusion_matrix()` |
 | Inspection | `model.summary()` |
 | Architecture | `model.visualize()` |
 | Serialization | `.krx` format |
 | Optimizers | SGD, Adam |
-| Losses | BCE, CCE |
-|  Metrics | Accuracy |
-| Callbacks | EarlyStopping, CSVLogger, ModelCheckpoint |
+| Losses | BCE, CCE, SoftmaxCCE |
+| Metrics | Accuracy, BinaryAccuracy, CategoricalAccuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
+| Callbacks | EarlyStopping, CSVLogger, ModelCheckpoint, ReduceLROnPlateau |
 | Type Checked | mypy |
 | Linted | Ruff |
 | Distribution | PyPI |
+| Datasets | xor, spiral, circles, moons, blobs, iris |
+| Preprocessing | StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder |
+| Data Utilities | train_test_split, BatchLoader, TensorDataset |
 
 ---
 
