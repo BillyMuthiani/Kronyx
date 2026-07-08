@@ -23,7 +23,7 @@ class TestTrainTestSplit:
         y = np.arange(50)
         result1 = train_test_split(X, y, test_size=0.2, random_state=42)
         result2 = train_test_split(X, y, test_size=0.2, random_state=42)
-        for a, b in zip(result1, result2):
+        for a, b in zip(result1, result2, strict=False):
             np.testing.assert_array_equal(a, b)
 
     def test_no_shuffle(self):
@@ -67,7 +67,7 @@ class TestBatchLoader:
     def test_no_y(self):
         X = np.arange(100).reshape(50, 2)
         loader = BatchLoader(X, batch_size=10)
-        for X_batch, y_batch in loader:
+        for _X_batch, y_batch in loader:
             assert y_batch is None
 
 

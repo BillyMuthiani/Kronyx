@@ -483,7 +483,12 @@ class Sequential:
             })
         return summary
 
-    def visualize(self, output_format: str | None = None, show_params: bool = False, style: str = "ascii"):
+    def visualize(
+        self,
+        output_format: str | None = None,
+        show_params: bool = False,
+        style: str = "ascii",
+    ):
         """Display an ASCII architecture diagram of the model.
 
         Creates a visual representation of the model layers connected by arrows.
@@ -552,13 +557,19 @@ class Sequential:
             if style == "ascii":
                 self._print_ascii_style(layer_name, params, i, show_params)
             elif style == "box":
-                self._print_box_style(layer_name, params, weights_shape, biases_shape, i, show_params)
+                self._print_box_style(
+                    layer_name, params, weights_shape, biases_shape, i, show_params
+                )
             elif style == "compact":
                 self._print_compact_style(layer_name, params, i)
             elif style == "unicode":
-                self._print_unicode_style(layer_name, params, weights_shape, biases_shape, i)
+                self._print_unicode_style(
+                    layer_name, params, weights_shape, biases_shape, i
+                )
             else:
-                raise ValueError(f"Unknown style: {style}. Use one of: ascii, box, compact, unicode")
+                raise ValueError(
+                    f"Unknown style: {style}. Use one of: ascii, box, compact, unicode"
+                )
 
             if i < len(self.layers) - 1:
                 print(" ↓")
@@ -587,7 +598,7 @@ class Sequential:
 
         # Center content
         max_width = 30
-        for j, line in enumerate(content_lines):
+        for _j, line in enumerate(content_lines):
             pad = (max_width - len(line)) // 2
             print(f"│{' ' * pad}{line}{' ' * (max_width - len(line) - pad):}│")
         print("└───────────────────────────────┘")

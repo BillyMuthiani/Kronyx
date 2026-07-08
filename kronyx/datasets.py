@@ -6,7 +6,11 @@ Designed to be simple, visualizable, and perfect for learning neural networks.
 import numpy as np
 
 
-def xor(samples: int = 100, noise: float = 0.1, random_state: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def xor(
+    samples: int = 100,
+    noise: float = 0.1,
+    random_state: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate XOR binary classification dataset.
 
     Creates a 2D dataset where points belong to class 0 if they're in the same
@@ -51,7 +55,12 @@ def xor(samples: int = 100, noise: float = 0.1, random_state: int | None = None)
     return X, y
 
 
-def spiral(samples: int = 1000, classes: int = 3, noise: float = 0.2, random_state: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def spiral(
+    samples: int = 1000,
+    classes: int = 3,
+    noise: float = 0.2,
+    random_state: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate spiral-shaped multi-class classification dataset.
 
     Creates points arranged in spiral patterns, one per class. Each class forms
@@ -84,7 +93,8 @@ def spiral(samples: int = 1000, classes: int = 3, noise: float = 0.2, random_sta
         end_idx = start_idx + samples_per_class
 
         r = np.linspace(0.0, 1, samples_per_class)
-        t = np.linspace(c * 4, (c + 1) * 4, samples_per_class) + np.random.randn(samples_per_class) * noise
+        t = np.linspace(c * 4, (c + 1) * 4, samples_per_class)
+        t += np.random.randn(samples_per_class) * noise
 
         X[start_idx:end_idx, 0] = r * np.sin(t)
         X[start_idx:end_idx, 1] = r * np.cos(t)
@@ -93,7 +103,12 @@ def spiral(samples: int = 1000, classes: int = 3, noise: float = 0.2, random_sta
     return X, y
 
 
-def circles(samples: int = 1000, noise: float = 0.05, factor: float = 0.5, random_state: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def circles(
+    samples: int = 1000,
+    noise: float = 0.05,
+    factor: float = 0.5,
+    random_state: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate concentric circles classification dataset.
 
     Creates points arranged in two concentric circles. Points inside the inner
@@ -146,7 +161,11 @@ def circles(samples: int = 1000, noise: float = 0.05, factor: float = 0.5, rando
     return X[indices], y[indices]
 
 
-def moons(samples: int = 1000, noise: float = 0.1, random_state: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def moons(
+    samples: int = 1000,
+    noise: float = 0.1,
+    random_state: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate two interleaving crescent moon shapes.
 
     Creates two crescent-shaped clusters that are not linearly separable.
@@ -192,7 +211,12 @@ def moons(samples: int = 1000, noise: float = 0.1, random_state: int | None = No
     return X[indices], y[indices]
 
 
-def blobs(samples: int = 1000, centers: int = 3, cluster_std: float = 1.0, random_state: int | None = None) -> tuple[np.ndarray, np.ndarray]:
+def blobs(
+    samples: int = 1000,
+    centers: int = 3,
+    cluster_std: float = 1.0,
+    random_state: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
     """Generate Gaussian blob classification dataset.
 
     Creates isotropic Gaussian blobs for clustering and classification.

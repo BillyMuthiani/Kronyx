@@ -109,4 +109,6 @@ select = [
 
 ignore = [
     "N999",
+    "N803",  # Allow uppercase X for features (ML convention)
+    "N806",  # Allow uppercase X for features (ML convention)
 ]

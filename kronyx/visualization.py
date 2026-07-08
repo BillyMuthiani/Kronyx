@@ -21,7 +21,7 @@ def plot_training_curves(history, metric: str | None = None, filename: str | Non
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
@@ -36,7 +36,7 @@ def plot_training_curves(history, metric: str | None = None, filename: str | Non
 
 def _plot_single_metric(history, metric: str, filename: str | None) -> None:
     """Plot a single metric."""
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt  # noqa: F401
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 5))
 
@@ -68,7 +68,7 @@ def _plot_single_metric(history, metric: str, filename: str | None) -> None:
 
 def _plot_all_metrics(history, filename: str | None) -> None:
     """Plot all available metrics."""
-    import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt  # noqa: F401
 
     metrics_to_plot = []
     if history.loss:
@@ -106,7 +106,11 @@ def _plot_all_metrics(history, filename: str | None) -> None:
         plt.show()
 
 
-def plot_confusion_matrix(cm: np.ndarray, classes: list | None = None, filename: str | None = None) -> None:
+def plot_confusion_matrix(
+    cm: np.ndarray,
+    classes: list | None = None,
+    filename: str | None = None,
+) -> None:
     """Plot a confusion matrix as a heatmap.
 
     Args:
@@ -118,7 +122,7 @@ def plot_confusion_matrix(cm: np.ndarray, classes: list | None = None, filename:
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
@@ -163,14 +167,20 @@ def plot_confusion_matrix(cm: np.ndarray, classes: list | None = None, filename:
         plt.show()
 
 
-def plot_decision_boundary(model, X: np.ndarray, y: np.ndarray, resolution: float = 0.02, filename: str | None = None) -> None:
+def plot_decision_boundary(
+    model,
+    x: np.ndarray,
+    y: np.ndarray,
+    resolution: float = 0.02,
+    filename: str | None = None,
+) -> None:
     """Plot decision boundary of a classifier.
 
     Creates a contour plot showing the decision regions of a model.
 
     Args:
         model: Trained model with predict() method.
-        X: Input features, shape (n_samples, 2).
+        x: Input features, shape (n_samples, 2).
         y: True labels.
         resolution: Grid resolution for decision boundary. Defaults to 0.02.
         filename: Optional path to save the figure.
@@ -179,15 +189,15 @@ def plot_decision_boundary(model, X: np.ndarray, y: np.ndarray, resolution: floa
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
         ) from e
 
     # Create mesh grid
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    x_min, x_max = x[:, 0].min() - 1, x[:, 0].max() + 1
+    y_min, y_max = x[:, 1].min() - 1, x[:, 1].max() + 1
     xx, yy = np.meshgrid(
         np.arange(x_min, x_max, resolution),
         np.arange(y_min, y_max, resolution)
@@ -195,17 +205,17 @@ def plot_decision_boundary(model, X: np.ndarray, y: np.ndarray, resolution: floa
 
     # Predict on mesh
     mesh = np.c_[xx.ravel(), yy.ravel()]
-    Z = model.predict(mesh)
-    if Z.ndim > 1 and Z.shape[1] > 1:
-        Z = np.argmax(Z, axis=1)
+    z = model.predict(mesh)
+    if z.ndim > 1 and z.shape[1] > 1:
+        z = np.argmax(z, axis=1)
     else:
-        Z = (Z > 0.5).astype(int).flatten()
-    Z = Z.reshape(xx.shape)
+        z = (z > 0.5).astype(int).flatten()
+    z = z.reshape(xx.shape)
 
     # Plot
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-    ax.contourf(xx, yy, Z, alpha=0.3, levels=np.unique(Z) + 0.5)
-    scatter = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Set1, edgecolors="k")
+    ax.contourf(xx, yy, z, alpha=0.3, levels=np.unique(z) + 0.5)
+    ax.scatter(x[:, 0], x[:, 1], c=y, cmap=plt.cm.Set1, edgecolors="k")
     ax.set_xlabel("Feature 1")
     ax.set_ylabel("Feature 2")
     ax.set_title("Decision Boundary")
@@ -218,11 +228,13 @@ def plot_decision_boundary(model, X: np.ndarray, y: np.ndarray, resolution: floa
         plt.show()
 
 
-def plot_dataset(X: np.ndarray, y: np.ndarray, filename: str | None = None) -> None:
+def plot_dataset(
+    x: np.ndarray, y: np.ndarray, filename: str | None = None
+) -> None:
     """Plot a 2D dataset with class colors.
 
     Args:
-        X: Input features, shape (n_samples, 2).
+        x: Input features, shape (n_samples, 2).
         y: True labels.
         filename: Optional path to save the figure.
 
@@ -230,14 +242,14 @@ def plot_dataset(X: np.ndarray, y: np.ndarray, filename: str | None = None) -> N
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
         ) from e
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-    scatter = ax.scatter(X[:, 0], X[:, 1], c=y, cmap=plt.cm.Set1, edgecolors="k")
+    ax.scatter(x[:, 0], x[:, 1], c=y, cmap=plt.cm.Set1, edgecolors="k")
     ax.set_xlabel("Feature 1")
     ax.set_ylabel("Feature 2")
     ax.set_title("Dataset Visualization")
@@ -250,11 +262,16 @@ def plot_dataset(X: np.ndarray, y: np.ndarray, filename: str | None = None) -> N
         plt.show()
 
 
-def plot_predictions(X: np.ndarray, y_true: np.ndarray, y_pred: np.ndarray, filename: str | None = None) -> None:
+def plot_predictions(
+    x: np.ndarray,
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    filename: str | None = None,
+) -> None:
     """Plot predictions vs true labels.
 
     Args:
-        X: Input features, shape (n_samples, 2).
+        x: Input features, shape (n_samples, 2).
         y_true: True labels.
         y_pred: Predicted labels.
         filename: Optional path to save the figure.
@@ -263,7 +280,7 @@ def plot_predictions(X: np.ndarray, y_true: np.ndarray, y_pred: np.ndarray, file
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
@@ -272,13 +289,13 @@ def plot_predictions(X: np.ndarray, y_true: np.ndarray, y_pred: np.ndarray, file
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     # True labels
-    axes[0].scatter(X[:, 0], X[:, 1], c=y_true, cmap=plt.cm.Set1, edgecolors="k")
+    axes[0].scatter(x[:, 0], x[:, 1], c=y_true, cmap=plt.cm.Set1, edgecolors="k")
     axes[0].set_title("True Labels")
     axes[0].set_xlabel("Feature 1")
     axes[0].set_ylabel("Feature 2")
 
     # Predictions
-    axes[1].scatter(X[:, 0], X[:, 1], c=y_pred, cmap=plt.cm.Set1, edgecolors="k")
+    axes[1].scatter(x[:, 0], x[:, 1], c=y_pred, cmap=plt.cm.Set1, edgecolors="k")
     axes[1].set_title("Predictions")
     axes[1].set_xlabel("Feature 1")
     axes[1].set_ylabel("Feature 2")
@@ -291,13 +308,18 @@ def plot_predictions(X: np.ndarray, y_true: np.ndarray, y_pred: np.ndarray, file
         plt.show()
 
 
-def plot_feature_space(X: np.ndarray, y: np.ndarray, feature_pairs: list | None = None, filename: str | None = None) -> None:
+def plot_feature_space(
+    x: np.ndarray,
+    y: np.ndarray,
+    feature_pairs: list | None = None,
+    filename: str | None = None,
+) -> None:
     """Plot feature space for multiple feature pairs.
 
     Creates a grid of scatter plots for all feature combinations.
 
     Args:
-        X: Input features, shape (n_samples, n_features).
+        x: Input features, shape (n_samples, n_features).
         y: True labels.
         feature_pairs: Optional list of (i, j) tuples for feature indices.
         filename: Optional path to save the figure.
@@ -306,13 +328,13 @@ def plot_feature_space(X: np.ndarray, y: np.ndarray, feature_pairs: list | None 
         ImportError: If matplotlib is not installed.
     """
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # noqa: F401
     except ImportError as e:
         raise ImportError(
             "matplotlib is required for plotting. Install it with: pip install matplotlib"
         ) from e
 
-    n_features = X.shape[1]
+    n_features = x.shape[1]
 
     if feature_pairs is None:
         feature_pairs = [(i, j) for i in range(n_features) for j in range(i + 1, n_features)]
@@ -331,8 +353,8 @@ def plot_feature_space(X: np.ndarray, y: np.ndarray, feature_pairs: list | None 
     else:
         axes = axes.flatten()
 
-    for ax, (i, j) in zip(axes, feature_pairs):
-        ax.scatter(X[:, i], X[:, j], c=y, cmap=plt.cm.Set1, edgecolors="k", s=20)
+    for ax, (i, j) in zip(axes, feature_pairs, strict=False):
+        ax.scatter(x[:, i], x[:, j], c=y, cmap=plt.cm.Set1, edgecolors="k", s=20)
         ax.set_xlabel(f"Feature {i}")
         ax.set_ylabel(f"Feature {j}")
 

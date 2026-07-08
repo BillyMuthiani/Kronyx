@@ -127,25 +127,21 @@ model.save("xor.krx")
 
 # Features
 
-| | | |
-|:--|:--|
-| Backend | Pure NumPy |
-| Educational | Built for learning neural networks |
-| API | Keras-like Sequential interface |
-| 📊 Visualization | `history.plot()`, `plot_decision_boundary()`, `plot_confusion_matrix()` |
-| Inspection | `model.summary()` |
-| Architecture | `model.visualize()` |
-| Serialization | `.krx` format |
-| Optimizers | SGD, Adam |
-| Losses | BCE, CCE, SoftmaxCCE |
-| Metrics | Accuracy, BinaryAccuracy, CategoricalAccuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
-| Callbacks | EarlyStopping, CSVLogger, ModelCheckpoint, ReduceLROnPlateau |
-| Type Checked | mypy |
-| Linted | Ruff |
-| Distribution | PyPI |
-| Datasets | xor, spiral, circles, moons, blobs, iris |
-| Preprocessing | StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder |
-| Data Utilities | train_test_split, BatchLoader, TensorDataset |
+| Category | Features |
+|:---------|:---------|
+| **Core** | Pure NumPy backend, Keras-like Sequential API |
+| **Education** | Built for learning neural networks, `model.summary()`, `model.visualize()` |
+| **Visualization** | `history.plot()`, `plot_decision_boundary()`, `plot_confusion_matrix()`, `plot_dataset()`, `plot_predictions()`, `plot_feature_space()` |
+| **Optimization** | SGD, Adam |
+| **Losses** | BinaryCrossEntropy, CategoricalCrossEntropy, SoftmaxCategoricalCrossEntropy |
+| **Metrics** | Accuracy, BinaryAccuracy, CategoricalAccuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
+| **Callbacks** | EarlyStopping, CSVLogger, ModelCheckpoint, ReduceLROnPlateau |
+| **Preprocessing** | StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder |
+| **Datasets** | xor, spiral, circles, moons, blobs, iris |
+| **Data Utilities** | train_test_split, BatchLoader, TensorDataset |
+| **Serialization** | `.krx` format |
+| **Quality** | mypy type checking, Ruff linting |
+| **Distribution** | PyPI |
 
 ---
 
