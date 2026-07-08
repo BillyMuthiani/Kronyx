@@ -576,6 +576,26 @@ class Sequential:
 
         print()
 
+    def _get_layer_params(self, layer) -> int:
+        """Get the number of parameters in a layer.
+
+        Args:
+            layer: A layer object.
+
+        Returns:
+            Number of parameters in the layer.
+        """
+        params = 0
+        if hasattr(layer, 'weights') and layer.weights is not None:
+            params += int(np.prod(layer.weights.shape))
+        if hasattr(layer, 'biases') and layer.biases is not None:
+            params += int(np.prod(layer.biases.shape))
+        if hasattr(layer, 'gamma') and layer.gamma is not None:
+            params += int(np.prod(layer.gamma.shape))
+        if hasattr(layer, 'beta') and layer.beta is not None:
+            params += int(np.prod(layer.beta.shape))
+        return params
+
     def _print_ascii_style(self, layer_name: str, params: int, i: int, show_params: bool):
         """Print in simple ASCII style."""
         if show_params:
