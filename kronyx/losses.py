@@ -1,5 +1,7 @@
 import numpy as np
 
+from kronyx.utils import validate_binary_shapes
+
 
 class BinaryCrossEntropy:
 
@@ -8,6 +10,7 @@ class BinaryCrossEntropy:
         y_true,
         y_pred
     ):
+        y_true, y_pred = validate_binary_shapes(y_true, y_pred)
 
         y_pred = np.clip(
             y_pred,
@@ -27,6 +30,7 @@ class BinaryCrossEntropy:
         y_true,
         y_pred
     ):
+        y_true, y_pred = validate_binary_shapes(y_true, y_pred)
 
         y_pred = np.clip(
             y_pred,

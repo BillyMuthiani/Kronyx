@@ -30,6 +30,25 @@ ruff check .
 mypy kronyx
 ```
 
+## Scope Declaration
+
+Every pull request must include a `SCOPE:` line in its description listing
+the files or glob patterns the change is expected to touch. Example:
+
+```
+SCOPE: kronyx/losses.py, kronyx/utils.py, tests/
+```
+
+This is enforced by the **Scope-check** CI job, which compares the actual
+changed files in the PR against the declared scope. If a file appears in
+the diff that is not covered by the `SCOPE:` line, the check posts a
+warning on the PR so it can be reviewed before merge.
+
+Why this exists: the CI gate catches scope creep mechanically — files
+modified accidentally, or changes that drift beyond the original intent,
+are surfaced immediately rather than relying solely on manual diff review
+during the review round.
+
 ## Code Style
 
 This project uses [Ruff](https://docs.astral.sh/ruff/) for linting:
