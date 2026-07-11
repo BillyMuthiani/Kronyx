@@ -81,8 +81,9 @@ def get_changed_files() -> list[str]:
 def is_in_scope(file_path: str, scope_patterns: list[str]) -> bool:
     """Check whether a file path matches any of the declared scope patterns.
 
-    Supports exact matches and fnmatch-style glob patterns (e.g. 'tests/'
-    matches 'tests/test_losses.py').
+    Supports exact matches and fnmatch-style glob patterns (e.g. 'tests/*'
+    matches 'tests/test_losses.py'). Directory prefixes ending with '/'
+    are treated as recursive directory matches.
 
     Args:
         file_path: Path of the changed file, relative to repo root.
@@ -92,7 +93,10 @@ def is_in_scope(file_path: str, scope_patterns: list[str]) -> bool:
         True if the file is covered by at least one pattern.
     """
     for pattern in scope_patterns:
-        if fnmatch.fnmatch(file_path, pattern):
+        if pattern.endswith("/"):
+            if file_path.startswith(pattern):
+                return True
+        elif fnmatch.fnmatch(file_path, pattern):
             return True
     return False
 
