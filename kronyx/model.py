@@ -370,67 +370,303 @@ class Sequential:
         self.optimizer = optimizer
         self.metric = metric
 
-    def summary(self, input_shape: tuple | None = None):
+    def summary(self, input_shape: tuple | None = None, return_string: bool = False) -> str | None:
         """Print a summary of the model architecture.
 
         Shows layer types, output shapes, and parameter counts in a format
         similar to professional frameworks like Keras.
 
         Args:
-            input_shape: Optional input shape tuple. If provided, calculates
-                output shapes for each layer. If None, uses '?' for unknown shapes.
+            input_shape: Optional input shape tuple. If provided, attempts to
+                infer output shapes for each layer using layer properties.
+                If None, uses '?' for unknown shapes.
+            return_string: If True, returns the summary as a string instead of
+                printing it. Useful for testing.
+
+        Returns:
+            Summary string if return_string=True, None otherwise.
 
         Examples:
             >>> model.summary()
             >>> model.summary(input_shape=(28, 28, 1))  # For Conv2D first layer
         """
+        lines: list[str] = []
+
         line_length = 75
         separator = "=" * line_length
-        header = f"{'Layer (type)':<25} {'Output Shape':<25} {'Param #':<10}"
-        print(separator)
-        print(header)
-        print(separator)
+        lines.append(separator)
+        lines.append("Model: Sequential")
+        lines.append(separator)
 
-        total_params = 0
-        trainable_params = 0
-        current_shape = input_shape
+        layer_rows: list[tuple[str, str, str]] = []
+        class_counts: dict[str, int] = {}
+        logical_shape = input_shape
 
-        for i, layer in enumerate(self.layers):
-            layer_name = type(layer).__name__
-            layer_idx = i
+        for layer in self.layers:
+            base_name = self._get_layer_type_name(layer)
+            count = class_counts.get(base_name, 0)
+            class_counts[base_name] = count + 1
+            if count == 0:
+                display_name = base_name
+            else:
+                display_name = f"{base_name}_{count}"
 
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            params = self._get_layer_param_count(layer)
+            breakdown = self._get_layer_param_breakdown(layer, logical_shape)
+            params_str = f"{params:,}" if breakdown == "0" else breakdown
+
+            layer_rows.append((display_name, shape_str, params_str))
+
+            if shape_str != "?":
+                logical_shape = self._parse_shape_for_next_layer(shape_str)
+
+        col1_width = max(len("Layer (type)"), max((len(r[0]) for r in layer_rows), default=10))
+        col2_width = max(len("Output Shape"), max((len(r[1]) for r in layer_rows), default=12))
+        col3_width = max(len("Param #"), max((len(r[2]) for r in layer_rows), default=8))
+
+        col1_width = max(col1_width, 10)
+        col2_width = max(col2_width, 12)
+        col3_width = max(col3_width, 8)
+
+        total_width = col1_width + 2 + col2_width + 2 + col3_width
+        thin_separator = "-" * max(total_width, line_length)
+
+        header = (
+            f"{'Layer (type)':<{col1_width}}  "
+            f"{'Output Shape':<{col2_width}}  "
+            f"{'Param #':>{col3_width}}"
+        )
+        lines.append(header)
+        lines.append(thin_separator)
+
+        for row_name, row_shape, row_params in layer_rows:
+            row = (
+                f"{row_name:<{col1_width}}  "
+                f"{row_shape:<{col2_width}}  "
+                f"{row_params:>{col3_width}}"
+            )
+            lines.append(row)
+
+        total_params = sum(self._get_layer_param_count(layer) for layer in self.layers)
+        trainable_params = total_params
+        non_trainable_params = 0
+
+        labels = ["Total params:", "Trainable params:", "Non-trainable params:"]
+        values = [total_params, trainable_params, non_trainable_params]
+        label_width = max(len(label) for label in labels)
+        num_width = max(len(f"{v:,}") for v in values)
+
+        lines.append(separator)
+        for label, value in zip(labels, values, strict=True):
+            lines.append(f"{label:<{label_width}}  {value:>{num_width},}")
+        lines.append(separator)
+
+        summary_text = "\n".join(lines)
+
+        if return_string:
+            return summary_text
+
+        print(summary_text)
+        return None
+
+    def _get_layer_type_name(self, layer) -> str:
+        """Get the human-readable type name for a layer.
+
+        Args:
+            layer: A layer instance.
+
+        Returns:
+            Type name string.
+        """
+        layer_class = type(layer).__name__
+        if layer_class == "BatchNormalization":
+            return "BatchNorm"
+        return layer_class
+
+    def _get_layer_param_count(self, layer) -> int:
+        """Count the number of parameters in a layer.
+
+        Matches the counting logic in the legacy summary() and
+        count_params() implementations. Weights and biases are counted
+        for Dense and Conv2D layers.
+
+        Note: BatchNormalization gamma and beta are lazily initialized
+        during the first forward pass, so they are not counted here
+        unless training has occurred.
+
+        Args:
+            layer: A layer instance.
+
+        Returns:
+            Total parameter count for the layer.
+        """
+        if hasattr(layer, 'weights') and layer.weights is not None:
+            return int(layer.weights.size + layer.biases.size)
+        if hasattr(layer, 'kernels') and layer.kernels is not None:
+            return int(layer.kernels.size + layer.biases.size)
+        return 0
+
+    def _get_layer_param_breakdown(self, layer, logical_shape: tuple | None) -> str:
+        """Get a human-readable parameter breakdown for a layer.
+
+        Returns strings like '48 (32W + 16B)' for Dense,
+        '224 (216W + 8B)' for Conv2D, or '32 (16γ + 16β)' for
+        BatchNormalization. Returns '0' for layers without parameters
+        and '?' when the breakdown cannot be determined.
+
+        Args:
+            layer: A layer instance.
+            logical_shape: Input shape without batch dimension, or None.
+
+        Returns:
+            Parameter breakdown string.
+        """
+        layer_type = type(layer).__name__
+
+        if layer_type == "Dense":
             if hasattr(layer, 'weights') and layer.weights is not None:
-                params = int(layer.weights.size + layer.biases.size)
-                trainable_params += params
-            elif hasattr(layer, 'kernels') and layer.kernels is not None:
-                params = int(layer.kernels.size + layer.biases.size)
-                trainable_params += params
-            else:
-                params = 0
+                w_count = int(layer.weights.size)
+                b_count = int(layer.biases.size)
+                return f"{w_count + b_count} ({w_count}W + {b_count}B)"
+            return "0"
 
-            total_params += params
+        if layer_type == "Conv2D":
+            if layer.kernels is not None:
+                kh, kw, in_ch, filters = layer.kernels.shape
+                w_count = kh * kw * in_ch * filters
+                b_count = int(layer.biases.size)
+                return f"{w_count + b_count} ({w_count}W + {b_count}B)"
 
-            if current_shape is not None:
-                try:
-                    if isinstance(current_shape, tuple):
-                        dummy_input = np.random.randn(1, *current_shape).astype(np.float64)
-                    else:
-                        dummy_input = np.random.randn(1, 10).astype(np.float64)
-                    output = layer.forward(dummy_input, training=False)
-                    current_shape = tuple(output.shape[1:])
-                except Exception:
-                    shape_str = '?'
+            if logical_shape is not None and len(logical_shape) >= 3:
+                in_ch = logical_shape[2]
+                kernel_size = layer.kernel_size
+                filters = layer.filters
+                if isinstance(kernel_size, int):
+                    kernel_h = kernel_w = kernel_size
                 else:
-                    shape_str = str(current_shape)
-            else:
-                shape_str = '?'
-            print(f"{layer_name}{layer_idx:<20} {shape_str:<25} {params:<10}")
+                    kernel_h, kernel_w = kernel_size
+                w_count = kernel_h * kernel_w * in_ch * filters
+                b_count = filters
+                return f"{w_count + b_count} ({w_count}W + {b_count}B)"
 
-        print(separator)
-        print(f"Total params: {total_params:,}")
-        print(f"Trainable params: {trainable_params:,}")
-        print(f"Non-trainable params: {total_params - trainable_params:,}")
-        print(separator)
+            return "?"
+
+        if layer_type == "BatchNormalization":
+            if hasattr(layer, 'gamma') and layer.gamma is not None:
+                num_features = int(layer.gamma.size)
+                return f"{num_features * 2} ({num_features}γ + {num_features}β)"
+
+            if logical_shape is not None and len(logical_shape) >= 1:
+                num_features = logical_shape[-1]
+                return f"{num_features * 2} ({num_features}γ + {num_features}β)"
+
+            return "0"
+
+        return "0"
+
+    def _infer_output_shape(self, layer, logical_shape: tuple | None) -> str:
+        """Infer the output shape for a layer without running forward pass.
+
+        Uses layer properties where possible. Returns '?' if shape cannot
+        be determined.
+
+        Args:
+            layer: A layer instance.
+            logical_shape: Input shape without batch dimension, or None.
+
+        Returns:
+            Shape string like '(None, 16)' or '?'.
+        """
+        layer_type = type(layer).__name__
+
+        if layer_type == "Dense":
+            output_size = None
+            if hasattr(layer, 'biases') and layer.biases is not None:
+                output_size = layer.biases.shape[1]
+            elif hasattr(layer, 'weights') and layer.weights is not None:
+                output_size = layer.weights.shape[1]
+
+            if output_size is not None:
+                return f"(None, {output_size})"
+
+            return "?"
+
+        if logical_shape is None:
+            return "?"
+
+        if layer_type == "Conv2D":
+            if len(logical_shape) >= 2:
+                in_h = logical_shape[0]
+                in_w = logical_shape[1]
+
+                kernel_size = layer.kernel_size
+                stride = layer.stride
+                padding = layer.padding
+                filters = layer.filters
+
+                if isinstance(kernel_size, int):
+                    kernel_h = kernel_w = kernel_size
+                else:
+                    kernel_h, kernel_w = kernel_size
+
+                if isinstance(stride, int):
+                    stride_h = stride_w = stride
+                else:
+                    stride_h, stride_w = stride
+
+                if padding == "valid":
+                    out_h = (in_h - kernel_h) // stride_h + 1
+                    out_w = (in_w - kernel_w) // stride_w + 1
+                elif padding == "same":
+                    out_h = (in_h + stride_h - 1) // stride_h
+                    out_w = (in_w + stride_w - 1) // stride_w
+                else:
+                    return "?"
+
+                return f"(None, {out_h}, {out_w}, {filters})"
+
+            return "?"
+
+        if layer_type == "Flatten":
+            if len(logical_shape) >= 1:
+                features = 1
+                for dim in logical_shape:
+                    features *= dim
+                return f"(None, {features})"
+
+            return "?"
+
+        if layer_type in (
+            "Dropout",
+            "BatchNormalization",
+            "ReLU",
+            "Sigmoid",
+            "Tanh",
+            "Softmax",
+        ):
+            parts = ", ".join(str(dim) for dim in logical_shape)
+            return f"(None, {parts})"
+
+        return "?"
+
+    def _parse_shape_for_next_layer(self, shape_str: str) -> tuple | None:
+        """Parse a display shape string to get the logical shape for next layer.
+
+        Args:
+            shape_str: Shape string like '(None, 16)' or '?'.
+
+        Returns:
+            Logical shape tuple like (16,), or None if unknown.
+        """
+        if shape_str == "?" or not shape_str.startswith("(None, "):
+            return None
+        inner = shape_str[len("(None, "):-1]
+        try:
+            dims = tuple(int(d.strip()) for d in inner.split(","))
+        except ValueError:
+            return None
+        return dims
 
     def count_params(self) -> int:
         """Count total trainable parameters in the model.
