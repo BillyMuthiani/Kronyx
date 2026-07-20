@@ -724,6 +724,7 @@ class Sequential:
         output_format: str | None = None,
         show_params: bool = False,
         style: str = "ascii",
+        compact: bool = False,
     ):
         """Display an ASCII architecture diagram of the model.
 
@@ -735,24 +736,25 @@ class Sequential:
             output_format: Optional output format ('png', 'pdf', 'svg'). If provided
                 and graphviz is available, saves to file. Otherwise falls back
                 to ASCII output with specified style.
-            show_params: If True, shows parameter counts beside each layer (for non-compact styles).
+            show_params: Deprecated. Parameter counts are always shown in the
+                default visualization.
             style: Visualization style - "ascii", "box", "compact", or "unicode".
                 Required when not using graphviz.
+            compact: If True, displays a compact arrow-based diagram instead
+                of the detailed box view.
 
         Raises:
             ImportError: If graphviz is requested but not installed.
 
         Examples:
             >>> model.visualize()
-            >>> model.visualize(show_params=True)
             >>> model.visualize(style="unicode")
             >>> model.visualize(output_format='png')  # Requires graphviz
+            >>> model.visualize(compact=True)
 
         Notes:
             Graphviz is optional. ASCII visualization works without it.
             Install graphviz with: pip install graphviz
-
-        One of the best ASCII neural network visualizers available.
         """
         if output_format is not None:
             try:
@@ -763,129 +765,298 @@ class Sequential:
                 print("To install: pip install graphviz")
                 output_format = None
 
-        self._visualize_ascii(show_params, style)
+        if compact:
+            self._visualize_compact()
+        else:
+            self._visualize_default()
 
-    def _visualize_ascii(self, show_params: bool, style: str = "ascii"):
-        """Print ASCII architecture diagram in specified style.
-
-        Args:
-            show_params: If True, shows parameter counts beside layers.
-            style: Visualization style - "ascii", "box", "compact", or "unicode".
-        """
+    def _visualize_default(self) -> None:
+        """Print the default box-based architecture visualization."""
         if not self.layers:
             print("(Empty model)")
             return
 
-        print()
-        for i, layer in enumerate(self.layers):
-            layer_name = type(layer).__name__
+        lines: list[str] = []
+        line_length = 66
+        separator = "═" * line_length
 
-            # Get layer information
-            params = self._get_layer_params(layer)
-            weights_shape = None
-            biases_shape = None
-            if hasattr(layer, 'weights') and layer.weights is not None:
-                weights_shape = list(layer.weights.shape)
-            if hasattr(layer, 'biases') and layer.biases is not None:
-                biases_shape = list(layer.biases.shape)
+        lines.append(separator)
+        title = "KRONYX MODEL VISUALIZATION"
+        lines.append(title.center(line_length))
+        lines.append(separator)
+        lines.append("")
+        lines.append("Input")
+        lines.append("  │")
+        lines.append("  ▼")
 
-            # Format layer display based on style
-            if style == "ascii":
-                self._print_ascii_style(layer_name, params, i, show_params)
-            elif style == "box":
-                self._print_box_style(
-                    layer_name, params, weights_shape, biases_shape, i, show_params
-                )
-            elif style == "compact":
-                self._print_compact_style(layer_name, params, i)
-            elif style == "unicode":
-                self._print_unicode_style(
-                    layer_name, params, weights_shape, biases_shape, i
-                )
+        logical_shape: tuple | None = None
+        class_counts: dict[str, int] = {}
+
+        for layer in self.layers:
+            base_name = self._get_layer_type_name(layer)
+            count = class_counts.get(base_name, 0)
+            class_counts[base_name] = count + 1
+            if count == 0:
+                display_name = base_name
             else:
-                raise ValueError(
-                    f"Unknown style: {style}. Use one of: ascii, box, compact, unicode"
-                )
+                display_name = f"{base_name}_{count}"
 
-            if i < len(self.layers) - 1:
-                print(" ↓")
+            title_line = display_name
+            type_line = self._get_layer_visual_type_name(layer)
+            metadata_lines = self._get_layer_visual_metadata(layer, logical_shape)
 
-        print()
+            box_width = max(
+                len(title_line),
+                len(type_line),
+                max((len(m) for m in metadata_lines), default=0),
+            )
+            box_width = max(box_width, 20)
 
-    def _get_layer_params(self, layer) -> int:
-        """Get the number of parameters in a layer.
+            top = "┌" + "─" * (box_width + 2) + "┐"
+            bottom = "└" + "─" * (box_width + 2) + "┘"
+
+            title_pad = (box_width - len(title_line)) // 2
+            title_line = (
+                "│ "
+                + " " * title_pad
+                + title_line
+                + " " * (box_width - len(title_line) - title_pad)
+                + " │"
+            )
+
+            type_pad = (box_width - len(type_line)) // 2
+            type_line = (
+                "│ "
+                + " " * type_pad
+                + type_line
+                + " " * (box_width - len(type_line) - type_pad)
+                + " │"
+            )
+
+            lines.append(top)
+            lines.append(title_line)
+            lines.append(type_line)
+
+            if metadata_lines:
+                divider = "├" + "─" * (box_width + 2) + "┤"
+                lines.append(divider)
+                for meta in metadata_lines:
+                    padded = "│ " + meta.ljust(box_width) + " │"
+                    lines.append(padded)
+
+            lines.append(bottom)
+
+            if layer is not self.layers[-1]:
+                lines.append("                     │")
+                lines.append("                     ▼")
+
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                logical_shape = self._parse_shape_for_next_layer(shape_str)
+
+        lines.append("")
+        lines.append("                     │")
+        lines.append("                     ▼")
+        lines.append("")
+        lines.append("                 Prediction")
+
+        lines.append("")
+        lines.append(separator)
+        stats_title = "Network Statistics"
+        lines.append(stats_title.center(line_length))
+        lines.append(separator)
+
+        total_params = sum(self._get_layer_param_count(layer) for layer in self.layers)
+        trainable_params = total_params
+        non_trainable_params = 0
+        num_layers = len(self.layers)
+        num_trainable = sum(
+            1 for layer in self.layers if self._get_layer_param_count(layer) > 0
+        )
+        num_activations = sum(
+            1 for layer in self.layers
+            if type(layer).__name__
+            in ("ReLU", "Sigmoid", "Tanh", "Softmax")
+        )
+        memory_bytes = total_params * 4
+
+        stats = [
+            f"Layers               : {num_layers}",
+            f"Trainable Layers     : {num_trainable}",
+            f"Activation Layers    : {num_activations}",
+            f"Total Parameters     : {total_params:,}",
+            f"Trainable Params     : {trainable_params:,}",
+            f"Non-trainable Params : {non_trainable_params:,}",
+            f"Estimated Memory     : {self._format_memory(memory_bytes)}",
+        ]
+
+        for stat in stats:
+            lines.append(stat)
+
+        lines.append("")
+        lines.append(separator)
+
+        print("\n".join(lines))
+
+    def _visualize_compact(self) -> None:
+        """Print a compact arrow-based architecture diagram."""
+        if not self.layers:
+            print("(Empty model)")
+            return
+
+        print("Input")
+        print(" │")
+        print(" ▼")
+
+        logical_shape: tuple | None = None
+        class_counts: dict[str, int] = {}
+
+        for layer in self.layers:
+            base_name = self._get_layer_type_name(layer)
+            count = class_counts.get(base_name, 0)
+            class_counts[base_name] = count + 1
+            if count == 0:
+                display_name = base_name
+            else:
+                display_name = f"{base_name}_{count}"
+
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                logical_shape = self._parse_shape_for_next_layer(shape_str)
+
+            if type(layer).__name__ == "Dense":
+                if hasattr(layer, 'biases') and layer.biases is not None:
+                    units = layer.biases.shape[1]
+                else:
+                    units = "?"
+                print(f"{display_name}({units})")
+            elif type(layer).__name__ == "Conv2D":
+                print(f"{display_name}(filters={layer.filters})")
+            else:
+                print(display_name)
+
+            if layer is not self.layers[-1]:
+                print(" │")
+                print(" ▼")
+
+        print(" │")
+        print(" ▼")
+        print("Output")
+
+    def _get_layer_visual_type_name(self, layer) -> str:
+        """Get the display type name for visualization.
 
         Args:
-            layer: A layer object.
+            layer: A layer instance.
 
         Returns:
-            Number of parameters in the layer.
+            Human-readable type name.
         """
-        params = 0
-        if hasattr(layer, 'weights') and layer.weights is not None:
-            params += int(np.prod(layer.weights.shape))
-        if hasattr(layer, 'biases') and layer.biases is not None:
-            params += int(np.prod(layer.biases.shape))
-        if hasattr(layer, 'gamma') and layer.gamma is not None:
-            params += int(np.prod(layer.gamma.shape))
-        if hasattr(layer, 'beta') and layer.beta is not None:
-            params += int(np.prod(layer.beta.shape))
-        return params
+        layer_class = type(layer).__name__
+        if layer_class in ("ReLU", "Sigmoid", "Tanh", "Softmax"):
+            return f"{layer_class} Activation"
+        if layer_class == "BatchNormalization":
+            return "BatchNorm"
+        if layer_class == "Dropout":
+            return "Dropout"
+        return layer_class
 
-    def _print_ascii_style(self, layer_name: str, params: int, i: int, show_params: bool):
-        """Print in simple ASCII style."""
-        if show_params:
-            print(f"{layer_name}({params})")
-        else:
-            print(layer_name)
+    def _get_layer_visual_metadata(self, layer, logical_shape: tuple | None) -> list[str]:
+        """Get metadata lines for a layer in the default visualization.
 
-    def _print_box_style(self, layer_name: str, params: int, weights_shape: list[int] | None,
-                         biases_shape: list[int] | None, i: int, show_params: bool):
-        """Print in box style with detailed information."""
-        print("┌───────────────────────────────┐")
+        Args:
+            layer: A layer instance.
+            logical_shape: Input shape without batch dimension, or None.
 
-        content_lines = [layer_name]
-        if weights_shape:
-            content_lines.append(f"W:{weights_shape}")
-        if biases_shape:
-            content_lines.append(f"b:{biases_shape}")
-        if show_params:
-            content_lines.append(f"params:{params:,}")
+        Returns:
+            List of metadata strings like ['Units        : 16', ...].
+        """
+        layer_type = type(layer).__name__
+        metadata: list[str] = []
 
-        # Center content
-        max_width = 30
-        for _j, line in enumerate(content_lines):
-            pad = (max_width - len(line)) // 2
-            print(f"│{' ' * pad}{line}{' ' * (max_width - len(line) - pad):}│")
-        print("└───────────────────────────────┘")
+        if layer_type == "Dense":
+            units = None
+            if hasattr(layer, 'biases') and layer.biases is not None:
+                units = layer.biases.shape[1]
+            elif hasattr(layer, 'weights') and layer.weights is not None:
+                units = layer.weights.shape[1]
 
-    def _print_compact_style(self, layer_name: str, params: int, i: int):
-        """Print in compact style."""
-        short_name = layer_name[0].upper() + layer_name[1:].lower()[:3]
-        print(f"{short_name}")
+            if units is not None:
+                metadata.append(f"Units        : {units}")
 
-    def _print_unicode_style(self, layer_name: str, params: int,
-                             weights_shape: list[int] | None, biases_shape: list[int] | None,
-                             i: int):
-        """Print in Unicode rich style."""
-        unicode_layers = {
-            'Dense': '▭',  # Rectangle
-            'ReLU': '∩',   # Union
-            'Softmax': '⎔', # Box
-            'Conv2D': '⧖', # Diamond
-            'Flatten': '╳', # Plus
-            'Dropout': '●', # Circle
-            'BatchNormalization': '∑', # Summation
-        }
-        icon = unicode_layers.get(layer_name, '□')  # Box for unknown
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
 
-        info = f" {layer_name}({params:,})"
-        if weights_shape:
-            info += f" W{weights_shape}"
-        if biases_shape:
-            info += f" b{biases_shape}"
+            params = self._get_layer_param_count(layer)
+            breakdown = self._get_layer_param_breakdown(layer, logical_shape)
+            if breakdown != "?":
+                metadata.append(f"Parameters   : {breakdown}")
+            else:
+                metadata.append(f"Parameters   : {params:,}")
 
-        print(f"{icon}{info}")
+        elif layer_type == "Conv2D":
+            if isinstance(layer.kernel_size, int):
+                metadata.append(f"Kernel Size  : {layer.kernel_size}")
+            else:
+                metadata.append(f"Kernel Size  : {layer.kernel_size}")
+            metadata.append(f"Stride       : {layer.stride}")
+            metadata.append(f"Padding      : {layer.padding}")
+            metadata.append(f"Filters      : {layer.filters}")
+
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
+
+            params = self._get_layer_param_count(layer)
+            breakdown = self._get_layer_param_breakdown(layer, logical_shape)
+            if breakdown != "?":
+                metadata.append(f"Parameters   : {breakdown}")
+            else:
+                metadata.append(f"Parameters   : {params:,}")
+
+        elif layer_type == "Flatten":
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
+
+        elif layer_type == "Dropout":
+            metadata.append(f"Rate         : {layer.rate}")
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
+
+        elif layer_type == "BatchNormalization":
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
+
+            params = self._get_layer_param_count(layer)
+            breakdown = self._get_layer_param_breakdown(layer, logical_shape)
+            if breakdown != "?" and breakdown != "0":
+                metadata.append(f"Parameters   : {breakdown}")
+
+        elif layer_type in ("ReLU", "Sigmoid", "Tanh", "Softmax"):
+            shape_str = self._infer_output_shape(layer, logical_shape)
+            if shape_str != "?":
+                metadata.append(f"Output Shape : {shape_str}")
+
+        return metadata
+
+    def _format_memory(self, num_bytes: int) -> str:
+        """Format a byte count into a human-readable string.
+
+        Args:
+            num_bytes: Number of bytes.
+
+        Returns:
+            Formatted string like '260 Bytes', '2.5 KB', or '1.2 MB'.
+        """
+        if num_bytes < 1024:
+            return f"{num_bytes} Bytes"
+        if num_bytes < 1024 * 1024:
+            return f"{num_bytes / 1024:.1f} KB"
+        return f"{num_bytes / (1024 * 1024):.1f} MB"
 
     def _visualize_graphviz(self, output_format: str):
         """Generate graphviz visualization.
