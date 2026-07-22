@@ -8,11 +8,12 @@ declaration or if any changed file is not covered by the declared scope.
 Usage:
     python check_scope.py
 
-Environment variables required:
-    GITHUB_TOKEN   — token with repo scope (for posting PR comments).
-    GITHUB_REPOSITORY — owner/repo slug (provided by Actions automatically).
-    PR_NUMBER      — the pull request number (provided by Actions automatically).
-    PR_BODY        — the full text of the PR description/body.
+Environment variables:
+    GITHUB_TOKEN       — token with repo scope (for posting PR comments).
+    GITHUB_REPOSITORY  — owner/repo slug (provided by Actions automatically).
+    PR_NUMBER          — the pull request number (provided by Actions automatically).
+    PR_BODY            — the full text of the PR description/body (fallback).
+    GITHUB_EVENT_PATH  — path to the GitHub event JSON payload (preferred).
 
 Output:
     Prints the parsed scope and out-of-scope files to stdout.
@@ -27,6 +28,27 @@ import re
 import subprocess
 import sys
 import urllib.request
+
+
+def load_pr_body() -> str:
+    """Load the PR body from the most reliable source.
+
+    Prefers GITHUB_EVENT_PATH (full JSON event payload) to avoid issues
+    with multiline PR bodies being truncated when passed through
+    workflow ``env`` variables. Falls back to PR_BODY for local runs.
+
+    Returns:
+        Full PR description text, or empty string if unavailable.
+    """
+    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+    if event_path and os.path.exists(event_path):
+        try:
+            with open(event_path, "r", encoding="utf-8") as handle:
+                event = json.load(handle)
+            return event.get("pull_request", {}).get("body", "")
+        except Exception:
+            pass
+    return os.environ.get("PR_BODY", "")
 
 
 def parse_scope(pr_body: str) -> list[str]:
@@ -137,17 +159,44 @@ def post_comment(message: str) -> None:
         print(f"Warning: failed to post comment: {exc}", file=sys.stderr)
 
 
+def _debug_log(pr_body: str, scope_line: str, scope_patterns: list[str]) -> None:
+    """Print debug information about the PR body and scope parsing.
+
+    Args:
+        pr_body: Raw PR body text.
+        scope_line: The detected SCOPE: line, or empty string.
+        scope_patterns: Parsed scope patterns.
+    """
+    print("-" * 40)
+    print(f"PR body length : {len(pr_body)}")
+    if pr_body:
+        print("PR BODY START")
+        print(pr_body)
+        print("PR BODY END")
+    else:
+        print("PR BODY: <empty>")
+    print(f"Detected SCOPE line: {scope_line!r}")
+    print(f"Parsed scope patterns: {scope_patterns}")
+    print("-" * 40)
+
+
 def main() -> int:
-    pr_body = os.environ.get("PR_BODY", "")
+    pr_body = load_pr_body()
 
     try:
         scope_patterns = parse_scope(pr_body)
     except ValueError as exc:
+        scope_line = ""
+        for line in pr_body.splitlines():
+            if re.match(r"^\s*SCOPE\s*:", line, re.IGNORECASE):
+                scope_line = line
+                break
+        _debug_log(pr_body, scope_line, [])
         print(f"SCOPE DECLARATION MISSING: {exc}")
         post_comment(
-            f"## Scope-check failed\n\n{exc}\n\n"
+            "## Scope-check failed\n\n{exc}\n\n"
             "Add a `SCOPE:` line to the PR description so the changed files "
-            "can be verified against your declared intent."
+            "can be verified against your declared intent.".format(exc=exc)
         )
         return 1
 
