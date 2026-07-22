@@ -1,5 +1,8 @@
 import io
 import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from kronyx import (
     BatchNormalization,
@@ -165,3 +168,101 @@ class TestVisualize:
         model.add(Dropout(0.25))
         output = self._capture_visualize(model, compact=True)
         assert "Dropout" in output
+
+    def test_output_format_graphviz_defaults_to_svg(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+        mock_dot = MagicMock()
+        mock_graphviz = MagicMock()
+        mock_graphviz.Digraph.return_value = mock_dot
+
+        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
+            model.visualize(output_format="graphviz")
+
+        mock_dot.render.assert_called_once()
+        args, kwargs = mock_dot.render.call_args
+        assert args[0] == "model_architecture"
+        assert kwargs["format"] == "svg"
+        assert kwargs["cleanup"] is True
+
+    def test_output_format_svg(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+        mock_dot = MagicMock()
+        mock_graphviz = MagicMock()
+        mock_graphviz.Digraph.return_value = mock_dot
+
+        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
+            model.visualize(output_format="svg")
+
+        mock_dot.render.assert_called_once()
+        args, kwargs = mock_dot.render.call_args
+        assert args[0] == "model_architecture"
+        assert kwargs["format"] == "svg"
+        assert kwargs["cleanup"] is True
+
+    def test_output_format_png(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+        mock_dot = MagicMock()
+        mock_graphviz = MagicMock()
+        mock_graphviz.Digraph.return_value = mock_dot
+
+        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
+            model.visualize(output_format="png")
+
+        mock_dot.render.assert_called_once()
+        args, kwargs = mock_dot.render.call_args
+        assert args[0] == "model_architecture"
+        assert kwargs["format"] == "png"
+        assert kwargs["cleanup"] is True
+
+    def test_output_format_pdf(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+        mock_dot = MagicMock()
+        mock_graphviz = MagicMock()
+        mock_graphviz.Digraph.return_value = mock_dot
+
+        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
+            model.visualize(output_format="pdf")
+
+        mock_dot.render.assert_called_once()
+        args, kwargs = mock_dot.render.call_args
+        assert args[0] == "model_architecture"
+        assert kwargs["format"] == "pdf"
+        assert kwargs["cleanup"] is True
+
+    def test_invalid_format_raises_clean_value_error(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+        with pytest.raises(ValueError, match="Unsupported visualization format"):
+            model.visualize(output_format="banana")
+
+    def test_graphviz_missing_handled_gracefully(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+
+        with patch.dict(sys.modules, {"graphviz": None}):
+            output = self._capture_visualize(model, output_format="svg")
+
+        assert "Graphviz is not installed" in output
+        assert "pip install graphviz" in output
+
+    def test_graphviz_executable_missing_handled_gracefully(self):
+        model = Sequential()
+        model.add(Dense(2, 4))
+
+        class ExecutableNotFound(Exception):  # noqa: N818
+            pass
+
+        mock_dot = MagicMock()
+        mock_dot.render.side_effect = ExecutableNotFound("ExecutableNotFound")
+        mock_graphviz = MagicMock()
+        mock_graphviz.Digraph.return_value = mock_dot
+
+        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
+            output = self._capture_visualize(model, output_format="svg")
+
+        assert "Graphviz executable was not found" in output
+        assert "graphviz.org" in output
