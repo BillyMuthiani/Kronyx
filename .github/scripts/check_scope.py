@@ -8,11 +8,12 @@ declaration or if any changed file is not covered by the declared scope.
 Usage:
     python check_scope.py
 
-Environment variables required:
-    GITHUB_TOKEN   — token with repo scope (for posting PR comments).
-    GITHUB_REPOSITORY — owner/repo slug (provided by Actions automatically).
-    PR_NUMBER      — the pull request number (provided by Actions automatically).
-    PR_BODY        — the full text of the PR description/body.
+Environment variables:
+    GITHUB_TOKEN       — token with repo scope (for posting PR comments).
+    GITHUB_REPOSITORY  — owner/repo slug (provided by Actions automatically).
+    PR_NUMBER          — the pull request number (provided by Actions automatically).
+    PR_BODY            — the full text of the PR description/body (fallback).
+    GITHUB_EVENT_PATH  — path to the GitHub event JSON payload (fallback).
 
 Output:
     Prints the parsed scope and out-of-scope files to stdout.
@@ -26,7 +27,129 @@ import os
 import re
 import subprocess
 import sys
+import urllib.error
 import urllib.request
+
+
+def debug_pr_body_source(pr_body: str, source: str, event_path: str, event_exists: bool) -> None:
+    """Print debug information about the PR body source.
+
+    Args:
+        pr_body: The loaded PR body text.
+        source: The source that was used ('api', 'event_file', 'env').
+        event_path: Path to the GitHub event JSON file.
+        event_exists: Whether the event file exists.
+    """
+    print("=" * 40)
+    print(f"PR body source     : {source}")
+    print(f"GITHUB_EVENT_PATH : {event_path!r}")
+    print(f"Event file exists  : {event_exists}")
+    print(f"PR body length     : {len(pr_body)}")
+
+    scope_line = ""
+    scope_patterns = []
+    for line in pr_body.splitlines():
+        if re.match(r"^\s*SCOPE\s*:", line, re.IGNORECASE):
+            scope_line = line
+            break
+
+    if scope_line:
+        raw = scope_line.split(":", 1)[1]
+        scope_patterns = [p.strip() for p in raw.split(",") if p.strip()]
+
+    print(f"Detected SCOPE line     : {scope_line!r}")
+    print(f"Parsed scope patterns   : {scope_patterns}")
+    print("=" * 40)
+
+
+def _load_from_event_file() -> tuple[str | None, str, bool]:
+    """Attempt to load PR body from the GitHub event payload file.
+
+    Returns:
+        Tuple of (body_text, event_path, event_exists).
+    """
+    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+    if not event_path or not os.path.exists(event_path):
+        return None, event_path, False
+    try:
+        with open(event_path, encoding="utf-8") as handle:
+            event = json.load(handle)
+        return event.get("pull_request", {}).get("body", ""), event_path, True
+    except Exception:
+        return None, event_path, True
+
+
+def _fetch_pr_body_from_api(repo: str, pr_number: str, token: str) -> tuple[str | None, str | None]:
+    """Fetch the latest PR body directly from the GitHub API.
+
+    This bypasses the potentially stale GITHUB_EVENT_PATH payload
+    and always retrieves the current PR description.
+
+    Args:
+        repo: Repository slug (owner/repo).
+        pr_number: Pull request number.
+        token: GitHub authentication token.
+
+    Returns:
+        Tuple of (body_text, error_reason).
+    """
+    if not repo or not pr_number or not token:
+        return None, "missing repo/pr_number/token"
+
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json",
+            "User-Agent": "Kronyx-Scope-Check/1.0",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            return data.get("body", ""), None
+    except urllib.error.HTTPError as exc:
+        return None, f"HTTP {exc.code}: {exc.reason}"
+    except urllib.error.URLError as exc:
+        return None, f"URL error: {exc.reason}"
+    except Exception as exc:
+        return None, f"unexpected error: {type(exc).__name__}: {exc}"
+
+
+def load_pr_body() -> tuple[str, str, str, bool]:
+    """Load the PR body from the most reliable source.
+
+    Priority:
+      1. GitHub API (always current PR description).
+      2. GITHUB_EVENT_PATH (event payload file).
+      3. PR_BODY environment variable (local testing fallback).
+
+    Returns:
+        Tuple of (body_text, source, event_path, event_exists).
+    """
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    pr_number = os.environ.get("PR_NUMBER", "")
+    token = os.environ.get("GITHUB_TOKEN", "")
+    event_path = os.environ.get("GITHUB_EVENT_PATH", "")
+
+    api_body, api_error = _fetch_pr_body_from_api(repo, pr_number, token)
+    if api_body:
+        return api_body, "api", event_path, False
+
+    if api_error:
+        print(f"Warning: GitHub API fetch failed: {api_error}", file=sys.stderr)
+
+    event_body, event_path, event_exists = _load_from_event_file()
+    if event_body:
+        return event_body, "event_file", event_path, event_exists
+
+    env_body = os.environ.get("PR_BODY", "")
+    if env_body:
+        return env_body, "env", event_path, False
+
+    return "", "none", event_path, False
 
 
 def parse_scope(pr_body: str) -> list[str]:
@@ -138,14 +261,16 @@ def post_comment(message: str) -> None:
 
 
 def main() -> int:
-    pr_body = os.environ.get("PR_BODY", "")
+    pr_body, source, event_path, event_exists = load_pr_body()
+    debug_pr_body_source(pr_body, source, event_path, event_exists)
 
     try:
         scope_patterns = parse_scope(pr_body)
     except ValueError as exc:
         print(f"SCOPE DECLARATION MISSING: {exc}")
         post_comment(
-            f"## Scope-check failed\n\n{exc}\n\n"
+            "## Scope-check failed\n\n"
+            f"{exc}\n\n"
             "Add a `SCOPE:` line to the PR description so the changed files "
             "can be verified against your declared intent."
         )

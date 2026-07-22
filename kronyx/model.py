@@ -733,9 +733,9 @@ class Sequential:
         Otherwise displays an ASCII diagram in the specified style.
 
         Args:
-            output_format: Optional output format ('png', 'pdf', 'svg'). If provided
-                and graphviz is available, saves to file. Otherwise falls back
-                to ASCII output with specified style.
+            output_format: Optional output format. Use 'terminal' or omit for
+                ASCII output. Use 'graphviz' for SVG via Graphviz, or specify
+                'svg', 'png', 'pdf', 'jpg', or 'dot' directly.
             show_params: Deprecated. Parameter counts are always shown in the
                 default visualization.
             style: Visualization style - "ascii", "box", "compact", or "unicode".
@@ -744,7 +744,7 @@ class Sequential:
                 of the detailed box view.
 
         Raises:
-            ImportError: If graphviz is requested but not installed.
+            ValueError: If an unsupported output format is specified.
 
         Examples:
             >>> model.visualize()
@@ -757,13 +757,57 @@ class Sequential:
             Install graphviz with: pip install graphviz
         """
         if output_format is not None:
-            try:
-                import graphviz  # noqa: F401
-                return self._visualize_graphviz(output_format)
-            except ImportError:
-                print("graphviz not installed. Falling back to ASCII visualization.")
-                print("To install: pip install graphviz")
+            output_format = output_format.lower().strip()
+            if output_format == "terminal":
                 output_format = None
+            elif output_format == "graphviz":
+                output_format = "svg"
+
+            if output_format is not None:
+                supported = {"svg", "png", "pdf", "jpg", "dot"}
+                if output_format not in supported:
+                    raise ValueError(
+                        f'Unsupported visualization format "{output_format}".\n'
+                        "Supported formats are:\n"
+                        "  terminal\n"
+                        "  graphviz\n"
+                        "  svg\n"
+                        "  png\n"
+                        "  pdf\n"
+                        "  jpg\n"
+                        "  dot"
+                    )
+                try:
+                    import graphviz  # noqa: F401
+                except ImportError:
+                    print("Graphviz is not installed.")
+                    print("Install using:")
+                    print("")
+                    print("  pip install graphviz")
+                    return
+
+                try:
+                    self._visualize_graphviz(output_format)
+                except FileNotFoundError:
+                    print("Graphviz executable was not found.")
+                    print("Install Graphviz from")
+                    print("")
+                    print("  https://graphviz.org/download/")
+                    print("")
+                    print("and ensure \"dot\" is available on PATH.")
+                    return
+                except Exception as exc:
+                    if type(exc).__name__ == "ExecutableNotFound":
+                        print("Graphviz executable was not found.")
+                        print("Install Graphviz from")
+                        print("")
+                        print("  https://graphviz.org/download/")
+                        print("")
+                        print("and ensure \"dot\" is available on PATH.")
+                        return
+                    raise
+
+                return
 
         if compact:
             self._visualize_compact()
@@ -1062,7 +1106,7 @@ class Sequential:
         """Generate graphviz visualization.
 
         Args:
-            output_format: Output format (png, pdf, svg).
+            output_format: Validated output format (svg, png, pdf, jpg, dot).
 
         Returns:
             Graphviz Source object.
@@ -1085,9 +1129,9 @@ class Sequential:
             if i > 0:
                 dot.edge(str(i-1), str(i))
 
-        filename = f"model_architecture.{output_format}"
-        dot.render(filename, cleanup=True, format=output_format)
-        print(f"Saved to {filename}")
+        base_filename = "model_architecture"
+        dot.render(base_filename, format=output_format, cleanup=True)
+        print(f"Saved to {base_filename}.{output_format}")
 
     def save(self, filename):
         """Save complete model to .krx format.
