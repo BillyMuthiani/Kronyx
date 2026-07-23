@@ -1,4 +1,5 @@
 import io
+import os
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -172,34 +173,14 @@ class TestVisualize:
     def test_output_format_graphviz_defaults_to_svg(self):
         model = Sequential()
         model.add(Dense(2, 4))
-        mock_dot = MagicMock()
-        mock_graphviz = MagicMock()
-        mock_graphviz.Digraph.return_value = mock_dot
+        output = self._capture_visualize(model, output_format="graphviz")
+        assert "Saved to model_architecture.svg" in output
 
-        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
-            model.visualize(output_format="graphviz")
-
-        mock_dot.render.assert_called_once()
-        args, kwargs = mock_dot.render.call_args
-        assert args[0] == "model_architecture"
-        assert kwargs["format"] == "svg"
-        assert kwargs["cleanup"] is True
-
-    def test_output_format_svg(self):
+    def test_output_format_svg_uses_native_renderer(self):
         model = Sequential()
         model.add(Dense(2, 4))
-        mock_dot = MagicMock()
-        mock_graphviz = MagicMock()
-        mock_graphviz.Digraph.return_value = mock_dot
-
-        with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
-            model.visualize(output_format="svg")
-
-        mock_dot.render.assert_called_once()
-        args, kwargs = mock_dot.render.call_args
-        assert args[0] == "model_architecture"
-        assert kwargs["format"] == "svg"
-        assert kwargs["cleanup"] is True
+        output = self._capture_visualize(model, output_format="svg")
+        assert "Saved to model_architecture.svg" in output
 
     def test_output_format_png(self):
         model = Sequential()
@@ -239,30 +220,28 @@ class TestVisualize:
         with pytest.raises(ValueError, match="Unsupported visualization format"):
             model.visualize(output_format="banana")
 
-    def test_graphviz_missing_handled_gracefully(self):
+    def test_svg_native_renderer_file_created(self, tmp_path):
         model = Sequential()
         model.add(Dense(2, 4))
+        original_dir = os.getcwd()
+        os.chdir(tmp_path)
+        try:
+            model.visualize(output_format="svg")
+            assert (tmp_path / "model_architecture.svg").exists()
+        finally:
+            os.chdir(original_dir)
 
-        with patch.dict(sys.modules, {"graphviz": None}):
-            output = self._capture_visualize(model, output_format="svg")
-
-        assert "Graphviz is not installed" in output
-        assert "pip install graphviz" in output
-
-    def test_graphviz_executable_missing_handled_gracefully(self):
+    def test_graphviz_still_used_for_non_svg(self):
         model = Sequential()
         model.add(Dense(2, 4))
-
-        class ExecutableNotFound(Exception):  # noqa: N818
-            pass
-
         mock_dot = MagicMock()
-        mock_dot.render.side_effect = ExecutableNotFound("ExecutableNotFound")
         mock_graphviz = MagicMock()
         mock_graphviz.Digraph.return_value = mock_dot
 
         with patch.dict(sys.modules, {"graphviz": mock_graphviz}):
-            output = self._capture_visualize(model, output_format="svg")
+            model.visualize(output_format="dot")
 
-        assert "Graphviz executable was not found" in output
-        assert "graphviz.org" in output
+        mock_dot.render.assert_called_once()
+        args, kwargs = mock_dot.render.call_args
+        assert args[0] == "model_architecture"
+        assert kwargs["format"] == "dot"
