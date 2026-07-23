@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Native visualization engine with layered architecture:
+  - `Graph` and `GraphBuilder` for model abstraction
+  - `LayoutEngine` and `LayoutRegistry` for geometry computation
+  - `Scene` and `SceneStyler` for presentation
+  - `RendererRegistry` and native `SvgRenderer` for output
+  - `ThemeRegistry` with built-in light, dark, blueprint, terminal, and neon themes
+  - `IconRegistry` with semantic layer icons
+- Native SVG rendering pipeline for `model.visualize(output_format="svg")`
+- Runtime theme switching without Graphviz dependency
+- Layer icon system across all renderers
+- Comprehensive visualization test suite (396 tests)
+
+### Architecture
+
+- Visualization pipeline: `Sequential` → `GraphBuilder` → `Graph` → `LayoutEngine` → `Scene` → `SceneStyler` → `StyledScene` → `Renderer` → SVG
+- Renderer-independent icon and theme abstractions
+- Registry-based plugin system for layouts, renderers, themes, and icons
+
 ## [1.1.0] - 2026-07-05
 
 ### Added

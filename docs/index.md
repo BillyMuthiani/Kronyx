@@ -22,6 +22,7 @@ A lightweight deep learning framework built from first principles using NumPy.
 | **Preprocessing** | StandardScaler, MinMaxScaler, RobustScaler, OneHotEncoder |
 | **Metrics** | Accuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
 | **Visualization** | plot_training_curves, plot_decision_boundary, plot_confusion_matrix |
+| **Architecture** | Native SVG engine, themes, icons, layered pipeline |
 
 ## Quick Example
 
@@ -58,5 +59,19 @@ pip install kronyx
 
 ## Documentation
 
-Full documentation is available at [kronyx.github.io/kronyx](https://kronyx.github.io/kronyx).
+| Guide | Description |
+|--------|-------------|
+| [Getting Started](getting_started.md) | Installation and first model |
+| [Sequential API](sequential.md) | Building models |
+| [Layers](layers.md) | Dense, Conv2D, Flatten, Dropout |
+| [Callbacks](callbacks.md) | EarlyStopping, CSVLogger |
+| [Serialization](serialization.md) | Saving and loading `.krx` models |
+| [Examples](examples.md) | Complete working examples |
+| [Visualization Overview](visualization/overview.md) | Architecture pipeline and usage |
+| [Visualization Themes](visualization/themes.md) | Theme system and built-in themes |
+| [Visualization Icons](visualization/icons.md) | Layer icon system |
+| [Visualization Renderers](visualization/renderers.md) | Native SVG renderer |
+| [Architecture](architecture/visualization_engine.md) | Engine internals and design |
+| [Roadmap](../ROADMAP.md) | Future development |
+| [Changelog](../CHANGELOG.md) | Release history |
 

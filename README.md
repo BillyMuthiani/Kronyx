@@ -131,7 +131,8 @@ model.save("xor.krx")
 |:---------|:---------|
 | **Core** | Pure NumPy backend, Keras-like Sequential API |
 | **Education** | Built for learning neural networks, `model.summary()`, `model.visualize()` |
-| **Visualization** | `history.plot()`, `plot_decision_boundary()`, `plot_confusion_matrix()`, `plot_dataset()`, `plot_predictions()`, `plot_feature_space()` |
+| **Visualization** | Native SVG architecture diagrams, training curves, decision boundaries, confusion matrices |
+| **Visualization Engine** | Layered pipeline: GraphBuilder → Layout → SceneStyler → Renderer. Themes, icons, registry-based plugins |
 | **Optimization** | SGD, Adam |
 | **Losses** | BinaryCrossEntropy, CategoricalCrossEntropy, SoftmaxCategoricalCrossEntropy |
 | **Metrics** | Accuracy, BinaryAccuracy, CategoricalAccuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy |
@@ -145,7 +146,70 @@ model.save("xor.krx")
 
 ---
 
-# 📚 Documentation
+## 🖼️ Native Visualization Engine
+
+Kronyx includes a renderer-independent visualization engine for generating model architecture diagrams.
+
+### Pipeline
+
+```
+Sequential Model
+    ↓
+GraphBuilder
+    ↓
+Graph
+    ↓
+Layout Engine
+    ↓
+Scene
+    ↓
+Scene Styler
+    ↓
+Renderer
+    ↓
+SVG Output
+```
+
+### Components
+
+| Component | Responsibility |
+|:----------|:---------------|
+| **GraphBuilder** | Inspects a Sequential model and produces an intermediate `Graph` |
+| **Graph** | Immutable model structure (`Node`s and `Edge`s) |
+| **LayoutEngine** | Computes node positions and canvas dimensions |
+| **LayoutRegistry** | Plugin catalog for layout engines |
+| **SceneStyler** | Applies themes, fonts, colors, and icons to produce a `StyledScene` |
+| **RendererRegistry** | Plugin catalog for renderers |
+| **ThemeRegistry** | Plugin catalog for visual themes |
+| **IconRegistry** | Plugin catalog for layer icons |
+| **SvgRenderer** | Paints a `StyledScene` into an SVG string |
+
+### Capabilities
+
+- Native SVG rendering without Graphviz
+- Vertical layout with runtime theme support
+- Layer-specific semantic icons
+- Registry-based plugin system for layouts, renderers, themes, and icons
+- Renderer-independent architecture (SVG, PNG, PDF, HTML, ASCII)
+
+### Quick Example
+
+```python
+from kronyx import Sequential, Dense, ReLU
+
+model = Sequential()
+model.add(Dense(2, 16))
+model.add(ReLU())
+model.add(Dense(16, 1))
+
+model.visualize(output_format="svg")
+```
+
+This generates `model_architecture.svg` using the native visualization pipeline.
+
+---
+
+# Documentation
 
 | Guide | Description |
 |--------|-------------|
