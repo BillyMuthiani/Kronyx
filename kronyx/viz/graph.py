@@ -93,17 +93,63 @@ class Graph:
 
 
 @dataclass
-class Scene:
-    """Placeholder for future layout and positioning data.
+class PositionedNode:
+    """A node with computed layout coordinates and dimensions.
 
     Attributes:
-        graph: Source graph.
-        node_positions: Mapping of node id to (x, y) coordinates.
-        edge_paths: Mapping of edge id to ordered path points.
-        canvas_size: Width and height of the rendered canvas.
+        id: Node identifier.
+        x: Left coordinate in pixels.
+        y: Top coordinate in pixels.
+        width: Node width in pixels.
+        height: Node height in pixels.
+        node: Reference to the original Node.
+    """
+
+    id: str
+    x: float
+    y: float
+    width: float
+    height: float
+    node: Node
+
+
+@dataclass
+class PositionedEdge:
+    """An edge with computed source and target coordinates.
+
+    Attributes:
+        source_id: Source node identifier.
+        target_id: Target node identifier.
+        x1: Source x coordinate.
+        y1: Source y coordinate.
+        x2: Target x coordinate.
+        y2: Target y coordinate.
+        edge: Reference to the original Edge.
+    """
+
+    source_id: str
+    target_id: str
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    edge: Edge
+
+
+@dataclass
+class Scene:
+    """Layout output consumed by renderers.
+
+    Attributes:
+        graph: Source model architecture graph.
+        nodes: Positioned nodes in render order.
+        edges: Positioned edges in render order.
+        canvas_width: Total canvas width in pixels.
+        canvas_height: Total canvas height in pixels.
     """
 
     graph: Graph
-    node_positions: dict[str, tuple[float, float]] = field(default_factory=dict)
-    edge_paths: dict[str, list[tuple[float, float]]] = field(default_factory=dict)
-    canvas_size: tuple[float, float] = (0.0, 0.0)
+    nodes: list[PositionedNode] = field(default_factory=list)
+    edges: list[PositionedEdge] = field(default_factory=list)
+    canvas_width: float = 0.0
+    canvas_height: float = 0.0

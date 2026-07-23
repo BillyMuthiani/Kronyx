@@ -787,7 +787,10 @@ class Sequential:
                     return
 
                 try:
-                    self._visualize_graphviz(output_format)
+                    if output_format == "svg":
+                        self._visualize_svg()
+                    else:
+                        self._visualize_graphviz(output_format)
                 except FileNotFoundError:
                     print("Graphviz executable was not found.")
                     print("Install Graphviz from")
@@ -1132,6 +1135,13 @@ class Sequential:
         base_filename = "model_architecture"
         dot.render(base_filename, format=output_format, cleanup=True)
         print(f"Saved to {base_filename}.{output_format}")
+
+    def _visualize_svg(self):
+        from kronyx.viz.engine import VisualizationEngine
+
+        engine = VisualizationEngine()
+        engine.export(self, renderer_name="svg", filepath="model_architecture.svg")
+        print("Saved to model_architecture.svg")
 
     def save(self, filename):
         """Save complete model to .krx format.
