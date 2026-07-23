@@ -778,18 +778,18 @@ class Sequential:
                         "  dot"
                     )
                 try:
-                    import graphviz  # noqa: F401
-                except ImportError:
-                    print("Graphviz is not installed.")
-                    print("Install using:")
-                    print("")
-                    print("  pip install graphviz")
-                    return
-
-                try:
                     if output_format == "svg":
                         self._visualize_svg()
                     else:
+                        try:
+                            import graphviz  # noqa: F401
+                        except ImportError:
+                            print("Graphviz is not installed.")
+                            print("Install using:")
+                            print("")
+                            print("  pip install graphviz")
+                            return
+
                         self._visualize_graphviz(output_format)
                 except FileNotFoundError:
                     print("Graphviz executable was not found.")
