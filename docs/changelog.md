@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SerializationError` exception class for all serialization failures
 - Cross-platform compatibility (Windows/Linux/macOS)
 
+
 ### Changed
 
 - Renamed framework from "NeuralNet" to "Kronyx"
