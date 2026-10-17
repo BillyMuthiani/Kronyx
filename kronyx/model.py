@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from kronyx.exceptions import NotCompiledError
+from kronyx.exceptions import NotCompiledError, ShapeError
 
 
 class History:
@@ -291,6 +291,72 @@ class Sequential:
         """
         self.layers.append(layer)
 
+    def _validate_input_shape(self, x: np.ndarray) -> None:
+        """Validate that *x* matches the expected input shape of the first
+        learnable layer, when that shape is known.
+
+        Dense layers initialise ``weights`` in ``__init__``, Conv2D layers
+        initialise ``kernels`` lazily on the first forward pass, and
+        BatchNormalization initialises ``gamma`` lazily.  When the first
+        layer's parameters are already materialised we can check the input
+        against them; otherwise we skip validation (the shape is not yet
+        established).
+
+        Raises:
+            ShapeError: If the input feature/channel count does not match
+                the first layer's expected input.
+        """
+        if not self.layers:
+            return  # empty model — identity behaviour, no validation
+
+        first = self.layers[0]
+
+        # Dense: weights shape (input_size, output_size)
+        if hasattr(first, "weights") and first.weights is not None:
+            expected_features = first.weights.shape[0]
+            if x.ndim < 2 or x.shape[-1] != expected_features:
+                raise ShapeError(
+                    f"Dense input feature mismatch: expected {expected_features} "
+                    f"feature(s), got input shape {x.shape} "
+                    f"(last dimension was {x.shape[-1] if x.ndim >= 1 else x.size})."
+                )
+            return
+
+        # Conv2D: kernels shape (kh, kw, in_channels, out_channels)
+        # Conv2D always expects 4-D input; the channel count is only
+        # checkable once kernels are materialised (lazy init on first
+        # forward).  We validate ndim unconditionally and channels when known.
+        if hasattr(first, "kernels"):
+            if x.ndim != 4:
+                raise ShapeError(
+                    f"Conv2D expects 4-D input (batch, h, w, channels), "
+                    f"got {x.ndim}-D with shape {x.shape}."
+                )
+            if first.kernels is not None:
+                expected_channels = first.kernels.shape[2]
+                if x.shape[-1] != expected_channels:
+                    raise ShapeError(
+                        f"Conv2D channel mismatch: expected "
+                        f"{expected_channels} input channel(s), "
+                        f"got {x.shape[-1]}."
+                    )
+            return
+
+        # BatchNormalization: gamma shape (1, features)
+        if hasattr(first, "gamma") and first.gamma is not None:
+            expected_features = first.gamma.shape[1]
+            if x.ndim < 2 or x.shape[-1] != expected_features:
+                raise ShapeError(
+                    f"BatchNormalization input feature mismatch: "
+                    f"expected {expected_features} feature(s), "
+                    f"got input shape {x.shape} "
+                    f"(last dimension was {x.shape[-1] if x.ndim >= 1 else x.size})."
+                )
+            return
+
+        # Flatten and activation layers do not constrain the input shape
+        # at the model level; validation is deferred to downstream layers.
+
     def forward(self, x, training=True):
         """Forward pass through all layers.
 
@@ -326,6 +392,13 @@ class Sequential:
         Returns:
             ndarray of predictions.
         """
+        if batch_size is not None and batch_size <= 0:
+            raise ValueError(
+                f"batch_size must be a positive integer, got {batch_size}."
+            )
+
+        self._validate_input_shape(x)
+
         if batch_size is None:
             return self.forward(x, training=False)
 
@@ -1203,6 +1276,16 @@ class Sequential:
         Returns:
             Tuple of (loss, accuracy).
         """
+        if self.loss_function is None:
+            raise NotCompiledError(
+                "Compile the model before calling evaluate()."
+            )
+
+        if batch_size is not None and batch_size <= 0:
+            raise ValueError(
+                f"batch_size must be a positive integer, got {batch_size}."
+            )
+
         predictions = self.predict(x, batch_size=batch_size)
         loss = self.loss_function.forward(y, predictions)
 
@@ -1267,6 +1350,22 @@ class Sequential:
         if self.loss_function is None:
             raise NotCompiledError(
                 "Compile the model before calling fit()."
+            )
+
+        if epochs < 0:
+            raise ValueError(
+                f"epochs must be a non-negative integer, got {epochs}."
+            )
+
+        if len(x) != len(y):
+            raise ValueError(
+                f"Number of samples in x ({len(x)}) does not match "
+                f"number of labels in y ({len(y)})."
+            )
+
+        if batch_size is not None and batch_size <= 0:
+            raise ValueError(
+                f"batch_size must be a positive integer, got {batch_size}."
             )
 
         if callbacks is None:

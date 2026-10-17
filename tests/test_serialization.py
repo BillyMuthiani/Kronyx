@@ -9,8 +9,11 @@ import pytest
 
 from kronyx import (
     Accuracy,
+    BatchNormalization,
     BinaryCrossEntropy,
+    Conv2D,
     Dense,
+    Flatten,
     ReLU,
     Sequential,
     Sigmoid,
@@ -189,3 +192,103 @@ class TestSerialization:
                 os.remove(model_path)
             if os.path.exists(model_path + '.krx'):
                 os.remove(model_path + '.krx')
+
+    def test_batchnorm_roundtrip(self):
+        """BatchNorm params (gamma, beta, running stats) must survive save/load."""
+        np.random.seed(42)
+        model = Sequential()
+        model.add(Dense(4, 8))
+        model.add(BatchNormalization())
+        model.add(ReLU())
+        model.add(Dense(8, 1))
+        model.add(Sigmoid())
+        model.compile(loss=BinaryCrossEntropy(), optimizer=SGD(), metric=Accuracy())
+
+        x = np.random.randn(16, 4)
+        y = np.random.randint(0, 2, (16, 1)).astype(float)
+        model.fit(x, y, epochs=5, verbose=0)
+
+        bn = model.layers[1]
+        assert bn.gamma is not None, "BatchNorm gamma was never initialized"
+
+        # Capture expected values
+        orig_gamma = bn.gamma.copy()
+        orig_beta = bn.beta.copy()
+        orig_rm = bn.running_mean.copy()
+        orig_rv = bn.running_variance.copy()
+        orig_pred = model.predict(x, verbose=0)
+
+        model_path = tempfile.mktemp(suffix='.krx')
+        try:
+            save_model(model, model_path)
+            loaded = load_model(model_path)
+
+            bn2 = loaded.layers[1]
+
+            # --- Parameter preservation ---
+            assert bn2.gamma is not None, "gamma is None after load"
+            assert bn2.beta is not None, "beta is None after load"
+            assert bn2.running_mean is not None, "running_mean is None after load"
+            assert bn2.running_variance is not None, "running_variance is None after load"
+
+            np.testing.assert_allclose(bn2.gamma, orig_gamma, rtol=1e-6)
+            np.testing.assert_allclose(bn2.beta, orig_beta, rtol=1e-6)
+            np.testing.assert_allclose(bn2.running_mean, orig_rm, rtol=1e-6)
+            np.testing.assert_allclose(bn2.running_variance, orig_rv, rtol=1e-6)
+
+            # --- Prediction equivalence ---
+            loaded_pred = loaded.predict(x, verbose=0)
+            np.testing.assert_allclose(loaded_pred, orig_pred, rtol=1e-5,
+                                       err_msg="Predictions differ after BN round-trip")
+        finally:
+            if os.path.exists(model_path):
+                os.remove(model_path)
+
+    def test_conv2d_roundtrip(self):
+        """Conv2D params (kernels, biases) must survive save/load."""
+        np.random.seed(42)
+        model = Sequential()
+        model.add(Conv2D(filters=4, kernel_size=3, padding="same"))
+        model.add(ReLU())
+        model.add(Flatten())
+        model.add(Dense(4 * 8 * 8, 8))
+        model.add(ReLU())
+        model.add(Dense(8, 1))
+        model.add(Sigmoid())
+        model.compile(loss=BinaryCrossEntropy(), optimizer=SGD(), metric=None)
+
+        x = np.random.randn(16, 8, 8, 3)
+        y = np.random.randint(0, 2, (16, 1)).astype(float)
+        model.fit(x, y, epochs=5, verbose=0)
+
+        conv = model.layers[0]
+        assert conv.kernels is not None, "Conv2D kernels were never initialized"
+
+        # Capture expected values
+        orig_kernels = conv.kernels.copy()
+        orig_biases = conv.biases.copy()
+        orig_pred = model.predict(x, verbose=0)
+
+        model_path = tempfile.mktemp(suffix='.krx')
+        try:
+            save_model(model, model_path)
+            loaded = load_model(model_path)
+
+            conv2 = loaded.layers[0]
+
+            # --- Parameter preservation ---
+            assert conv2.kernels is not None, "kernels is None after load"
+            assert conv2.biases is not None, "biases is None after load"
+            assert conv2.kernels.shape == orig_kernels.shape, \
+                f"shapes differ: {conv2.kernels.shape} vs {orig_kernels.shape}"
+
+            np.testing.assert_allclose(conv2.kernels, orig_kernels, rtol=1e-6)
+            np.testing.assert_allclose(conv2.biases, orig_biases, rtol=1e-6)
+
+            # --- Prediction equivalence ---
+            loaded_pred = loaded.predict(x, verbose=0)
+            np.testing.assert_allclose(loaded_pred, orig_pred, rtol=1e-5,
+                                       err_msg="Predictions differ after Conv2D round-trip")
+        finally:
+            if os.path.exists(model_path):
+                os.remove(model_path)

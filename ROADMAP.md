@@ -1,20 +1,20 @@
 # Roadmap
 
-## Current (v0.6)
+## Current (v1.1.0)
 
 - [x] Layers: Dense, Conv2D, BatchNormalization, Dropout, Flatten
 - [x] Activations: ReLU, Sigmoid, Tanh, Softmax
 - [x] Optimizers: SGD, Adam
 - [x] Callbacks: EarlyStopping, ModelCheckpoint, CSVLogger, ReduceLROnPlateau
 - [x] Losses: BinaryCrossEntropy, CategoricalCrossEntropy, SoftmaxCategoricalCrossEntropy
-- [x] Metrics: Accuracy
+- [x] Metrics: Accuracy, BinaryAccuracy, CategoricalAccuracy, Precision, Recall, F1Score, ConfusionMatrix, TopKAccuracy
 - [x] Regularizers: L2
 - [x] Initializers: he_normal, xavier_uniform, lecun_normal
 - [x] Serialization: .krx format with save/load
 - [x] Model JSON export/import
 - [x] Type annotations (mypy clean)
 - [x] Code style (Ruff clean)
-- [x] 66 unit tests
+- [x] 496 unit tests
 - [x] Educational tools (plot, visualize, count_params, layer_summary)
 
 ## Upcoming (v0.7)

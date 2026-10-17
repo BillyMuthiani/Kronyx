@@ -5,7 +5,57 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] - 2026-07-01
+## [1.1.1] - 2026-10-17
+
+### Added
+
+- Native visualization engine with layered architecture:
+  - `Graph` and `GraphBuilder` for model abstraction
+  - `LayoutEngine` and `LayoutRegistry` for geometry computation
+  - `Scene` and `SceneStyler` for presentation
+  - `RendererRegistry` and native `SvgRenderer` for output
+  - `ThemeRegistry` with built-in light, dark, blueprint, terminal, and neon themes
+  - `IconRegistry` with semantic layer icons
+- Native SVG rendering pipeline for `model.visualize(output_format="svg")`
+- Runtime theme switching without Graphviz dependency
+- Layer icon system across all renderers
+- Comprehensive visualization test suite
+
+### Architecture
+
+- Visualization pipeline: `Sequential` → `GraphBuilder` → `Graph` → `LayoutEngine` → `Scene` → `SceneStyler` → `StyledScene` → `Renderer` → SVG
+- Renderer-independent icon and theme abstractions
+- Registry-based plugin system for layouts, renderers, themes, and icons
+
+### Phase 4
+
+- `predict()` now validates input shape against the first layer's expected input,
+  raising `ShapeError` with a descriptive message when feature counts or channels
+  mismatch (Dense, Conv2D, BatchNormalization layers)
+- `predict()` and `evaluate()` now validate `batch_size <= 0` and raise `ValueError`
+  (consistent with the existing `fit()` guard)
+- `Conv2D.backward()` now raises a clear `RuntimeError` when called before
+  `forward()` instead of a cryptic `AttributeError`
+- `Conv2D.backward()` optimised with `numpy.lib.stride_tricks.sliding_window_view`
+  for kernel-gradient computation and batch-vectorised `tensordot` for
+  input-gradient computation, yielding 3x-7x speedup on backward pass
+- Added `check_layer_gradient_weighted` and `check_layer_param_gradient_weighted`
+  to the gradient-check utilities, using a non-trivial upstream-gradient tensor
+  for more rigorous BatchNorm training-mode gradient verification
+
+### Phase 5
+
+- Added `MANIFEST.in` to ensure `kronyx/assets/` (logo.png, logo.svg) are
+  included in wheel and sdist distributions
+- Fixed ruff F841 lint errors in `tests/test_optimizers.py` (unused variables
+  in `test_sgd_zero_updates`)
+- Updated `ROADMAP.md` test count from 468 to 496
+- Updated `RELEASE.md` version examples from 0.7.0 to 1.2.0
+- Fixed `docs/getting_started.md` `compile()` example to use real loss/optimizer
+  instead of `None` placeholders
+- Added `testpypi-env/` to `.gitignore`
+
+## [1.1.0] - 2026-07-05
 
 ### Added
 

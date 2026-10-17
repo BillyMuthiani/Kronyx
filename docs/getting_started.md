@@ -12,7 +12,7 @@ pip install kronyx
 
 ```python
 import numpy as np
-from kronyx import Sequential, Dense, ReLU, Accuracy
+from kronyx import Sequential, Dense, ReLU, Accuracy, Adam, BinaryCrossEntropy
 
 # Create a sequential model
 model = Sequential()
@@ -22,10 +22,10 @@ model.add(Dense(4, 8))
 model.add(ReLU())
 model.add(Dense(8, 1))
 
-# Compile with optimizer and metric
+# Compile with optimizer, loss, and metric
 model.compile(
-    loss=None,  # Use default or specify
-    optimizer=None,  # Required: SGD() or Adam()
+    loss=BinaryCrossEntropy(),
+    optimizer=Adam(),
     metric=Accuracy()
 )
 

@@ -1,4 +1,42 @@
+"""Optimizers for the Kronyx deep learning framework.
+
+Each optimizer exposes an ``update(layer)`` method that the training loop
+calls once per layer after every backward pass.  The shared helper
+``_trainable_params`` discovers which arrays on a layer are trainable so
+individual optimizers stay focused on their update mathematics.
+"""
+
 import numpy as np
+
+
+def _trainable_params(layer):
+    """Yield (param_attr, grad_attr, state_prefix) per trainable parameter.
+
+    param_attr   - layer attribute holding the parameter array.
+    grad_attr    - layer attribute holding the gradient array.
+    state_prefix  - short name for optimiser state variables
+                    (e.g. "w", "b", "gamma", "beta").
+
+    Supported layer types:
+      - Dense:              weights/dweights, biases/dbiases
+      - Conv2D:             kernels/dkernels,  biases/dbiases
+      - BatchNormalization: gamma/dgamma,      beta/dbeta
+
+    BatchNorm running_mean / running_variance are update-only
+    statistics (corrected via momentum, not gradient descent) and are
+    intentionally *excluded* from the pairs returned here.
+    """
+    if hasattr(layer, "weights") and layer.weights is not None:
+        yield "weights", "dweights", "w"
+        yield "biases", "dbiases", "b"
+    elif hasattr(layer, "kernels") and layer.kernels is not None:
+        yield "kernels", "dkernels", "w"
+        yield "biases", "dbiases", "b"
+
+    if hasattr(layer, "gamma") and layer.gamma is not None:
+        yield "gamma", "dgamma", "gamma"
+    if hasattr(layer, "beta") and layer.beta is not None:
+        yield "beta", "dbeta", "beta"
 
 
 class SGD:
@@ -12,28 +50,12 @@ class SGD:
 
     def update(self, layer):
 
-        if hasattr(layer, "weights"):
-
-            layer.weights -= (
-                self.learning_rate
-                * layer.dweights
-            )
-
-            layer.biases -= (
-                self.learning_rate
-                * layer.dbiases
-            )
-
-        if hasattr(layer, "gamma"):
-
-            layer.gamma -= (
-                self.learning_rate
-                * layer.dgamma
-            )
-
-            layer.beta -= (
-                self.learning_rate
-                * layer.dbeta
+        for param_attr, grad_attr, _ in _trainable_params(layer):
+            param = getattr(layer, param_attr)
+            grad = getattr(layer, grad_attr)
+            setattr(
+                layer, param_attr,
+                param - self.learning_rate * grad
             )
 
 
@@ -55,178 +77,46 @@ class Adam:
 
     def update(self, layer):
 
-        if hasattr(layer, "weights"):
+        params = list(_trainable_params(layer))
 
-            if not hasattr(layer, "m_w"):
+        if not params:
+            return
 
-                layer.m_w = np.zeros_like(
-                    layer.weights
-                )
+        self.iterations += 1
 
-                layer.v_w = np.zeros_like(
-                    layer.weights
-                )
+        for param_attr, grad_attr, state_prefix in params:
 
-                layer.m_b = np.zeros_like(
-                    layer.biases
-                )
+            param = getattr(layer, param_attr)
+            grad = getattr(layer, grad_attr)
 
-                layer.v_b = np.zeros_like(
-                    layer.biases
-                )
+            m_attr = f"m_{state_prefix}"
+            v_attr = f"v_{state_prefix}"
 
-            self.iterations += 1
+            if not hasattr(layer, m_attr):
+                setattr(layer, m_attr, np.zeros_like(param))
+                setattr(layer, v_attr, np.zeros_like(param))
 
-            layer.m_w = (
-                self.beta1 * layer.m_w
-                +
-                (1 - self.beta1)
-                * layer.dweights
+            m = getattr(layer, m_attr)
+            v = getattr(layer, v_attr)
+
+            m = (
+                self.beta1 * m
+                + (1 - self.beta1) * grad
             )
 
-            layer.m_b = (
-                self.beta1 * layer.m_b
-                +
-                (1 - self.beta1)
-                * layer.dbiases
+            v = (
+                self.beta2 * v
+                + (1 - self.beta2) * (grad ** 2)
             )
 
-            layer.v_w = (
-                self.beta2 * layer.v_w
-                +
-                (1 - self.beta2)
-                * (layer.dweights ** 2)
-            )
+            setattr(layer, m_attr, m)
+            setattr(layer, v_attr, v)
 
-            layer.v_b = (
-                self.beta2 * layer.v_b
-                +
-                (1 - self.beta2)
-                * (layer.dbiases ** 2)
-            )
+            m_hat = m / (1 - self.beta1 ** self.iterations)
+            v_hat = v / (1 - self.beta2 ** self.iterations)
 
-            m_w_hat = (
-                layer.m_w
-                /
-                (1 - self.beta1 ** self.iterations)
-            )
-
-            m_b_hat = (
-                layer.m_b
-                /
-                (1 - self.beta1 ** self.iterations)
-            )
-
-            v_w_hat = (
-                layer.v_w
-                /
-                (1 - self.beta2 ** self.iterations)
-            )
-
-            v_b_hat = (
-                layer.v_b
-                /
-                (1 - self.beta2 ** self.iterations)
-            )
-
-            layer.weights -= (
+            setattr(layer, param_attr, param - (
                 self.learning_rate
-                * m_w_hat
-                /
-                (np.sqrt(v_w_hat) + self.epsilon)
-            )
-
-            layer.biases -= (
-                self.learning_rate
-                * m_b_hat
-                /
-                (np.sqrt(v_b_hat) + self.epsilon)
-            )
-
-        if hasattr(layer, "gamma"):
-
-            if not hasattr(layer, "m_gamma"):
-
-                layer.m_gamma = np.zeros_like(
-                    layer.gamma
-                )
-
-                layer.v_gamma = np.zeros_like(
-                    layer.gamma
-                )
-
-                layer.m_beta = np.zeros_like(
-                    layer.beta
-                )
-
-                layer.v_beta = np.zeros_like(
-                    layer.beta
-                )
-
-            self.iterations += 1
-
-            layer.m_gamma = (
-                self.beta1 * layer.m_gamma
-                +
-                (1 - self.beta1)
-                * layer.dgamma
-            )
-
-            layer.m_beta = (
-                self.beta1 * layer.m_beta
-                +
-                (1 - self.beta1)
-                * layer.dbeta
-            )
-
-            layer.v_gamma = (
-                self.beta2 * layer.v_gamma
-                +
-                (1 - self.beta2)
-                * (layer.dgamma ** 2)
-            )
-
-            layer.v_beta = (
-                self.beta2 * layer.v_beta
-                +
-                (1 - self.beta2)
-                * (layer.dbeta ** 2)
-            )
-
-            m_gamma_hat = (
-                layer.m_gamma
-                /
-                (1 - self.beta1 ** self.iterations)
-            )
-
-            m_beta_hat = (
-                layer.m_beta
-                /
-                (1 - self.beta1 ** self.iterations)
-            )
-
-            v_gamma_hat = (
-                layer.v_gamma
-                /
-                (1 - self.beta2 ** self.iterations)
-            )
-
-            v_beta_hat = (
-                layer.v_beta
-                /
-                (1 - self.beta2 ** self.iterations)
-            )
-
-            layer.gamma -= (
-                self.learning_rate
-                * m_gamma_hat
-                /
-                (np.sqrt(v_gamma_hat) + self.epsilon)
-            )
-
-            layer.beta -= (
-                self.learning_rate
-                * m_beta_hat
-                /
-                (np.sqrt(v_beta_hat) + self.epsilon)
-            )
+                * m_hat
+                / (np.sqrt(v_hat) + self.epsilon)
+            ))

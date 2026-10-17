@@ -15,7 +15,7 @@ How to create and publish a new release of Kronyx.
 Edit `kronyx/version.py`:
 
 ```python
-__version__ = "0.7.0"  # New version
+__version__ = "1.2.0"  # New version
 ```
 
 ### 2. Update Changelog
@@ -50,8 +50,8 @@ twine check dist/*
 
 ```bash
 git add .
-git commit -m "Release v0.7.0"
-git tag -a v0.7.0 -m "Release v0.7.0"
+git commit -m "Release v1.2.0"
+git tag -a v1.2.0 -m "Release v1.2.0"
 git push origin main --tags
 ```
 

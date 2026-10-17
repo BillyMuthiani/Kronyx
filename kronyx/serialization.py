@@ -5,6 +5,7 @@ Provides save/load functionality for complete models and weights using a custom
 """
 import io
 import json
+import os
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -117,10 +118,20 @@ def _get_layer_config(layer):
     if hasattr(layer, 'kernel_size'):
         config["kernel_size"] = layer.kernel_size
 
+    if hasattr(layer, 'kernels') and layer.kernels is not None:
+        config["kernels_shape"] = list(layer.kernels.shape)
+        config["biases_shape"] = list(layer.biases.shape)
+
     if hasattr(layer, 'kernel_regularizer'):
         reg = layer.kernel_regularizer
         if reg:
             config["regularizer"] = {"type": "L2", "lambda_": reg.lambda_}
+
+    if hasattr(layer, 'gamma') and layer.gamma is not None:
+        config["gamma_shape"] = list(layer.gamma.shape)
+        config["beta_shape"] = list(layer.beta.shape)
+        config["running_mean_shape"] = list(layer.running_mean.shape)
+        config["running_variance_shape"] = list(layer.running_variance.shape)
 
     return config
 
@@ -157,11 +168,23 @@ def save_model(model, filename):
 
         weights = {}
         trainable_idx = 0
+        bn_idx = 0
+        conv_idx = 0
         for layer in model.layers:
             if hasattr(layer, "weights"):
                 weights[f"w{trainable_idx}"] = layer.weights
                 weights[f"b{trainable_idx}"] = layer.biases
                 trainable_idx += 1
+            elif hasattr(layer, "gamma") and layer.gamma is not None:
+                weights[f"bn_w{bn_idx}_gamma"] = layer.gamma
+                weights[f"bn_w{bn_idx}_beta"] = layer.beta
+                weights[f"bn_w{bn_idx}_running_mean"] = layer.running_mean
+                weights[f"bn_w{bn_idx}_running_variance"] = layer.running_variance
+                bn_idx += 1
+            elif hasattr(layer, "kernels") and layer.kernels is not None:
+                weights[f"conv_w{conv_idx}_kernels"] = layer.kernels
+                weights[f"conv_w{conv_idx}_biases"] = layer.biases
+                conv_idx += 1
 
         optimizer_state = {}
         if model.optimizer and hasattr(model.optimizer, 'state'):
@@ -219,6 +242,12 @@ def load_model(filename):
 
     except FileNotFoundError:
         raise SerializationError(f"Model file not found: {filename}") from None
+    except (IsADirectoryError, PermissionError) as e:
+        if isinstance(e, PermissionError) and os.path.isdir(filename):
+            raise SerializationError(
+                f"Path is a directory, not a model file: {filename}"
+            ) from None
+        raise
     except KeyError as e:
         raise SerializationError(f"Invalid model archive: missing {e}") from None
     except json.JSONDecodeError as e:
@@ -269,7 +298,8 @@ def _reconstruct_model(architecture, weights_buffer, optimizer_buffer):
             layer = Conv2D(
                 filters=layer_config["filters"],
                 kernel_size=layer_config["kernel_size"],
-                padding=layer_config.get("padding", "valid")
+                padding=layer_config.get("padding", "valid"),
+                stride=layer_config.get("stride", 1),
             )
         elif layer_type == "Flatten":
             layer = Flatten()
@@ -277,7 +307,8 @@ def _reconstruct_model(architecture, weights_buffer, optimizer_buffer):
             layer = Dropout(rate=layer_config["rate"])
         elif layer_type == "BatchNormalization":
             layer = BatchNormalization(
-                momentum=layer_config.get("momentum", 0.9)
+                momentum=layer_config.get("momentum", 0.9),
+                epsilon=layer_config.get("epsilon", 1e-5)
             )
         else:
             layer = layer_class()
@@ -288,6 +319,8 @@ def _reconstruct_model(architecture, weights_buffer, optimizer_buffer):
         weights_buffer.seek(0)
         data = np.load(weights_buffer)
         trainable_idx = 0
+        bn_idx = 0
+        conv_idx = 0
         for layer in model.layers:
             if hasattr(layer, "weights"):
                 key = f"w{trainable_idx}"
@@ -295,6 +328,20 @@ def _reconstruct_model(architecture, weights_buffer, optimizer_buffer):
                     layer.weights = data[key]
                     layer.biases = data[f"b{trainable_idx}"]
                 trainable_idx += 1
+            elif hasattr(layer, "gamma"):
+                gamma_key = f"bn_w{bn_idx}_gamma"
+                if gamma_key in data:
+                    layer.gamma = data[gamma_key]
+                    layer.beta = data[f"bn_w{bn_idx}_beta"]
+                    layer.running_mean = data[f"bn_w{bn_idx}_running_mean"]
+                    layer.running_variance = data[f"bn_w{bn_idx}_running_variance"]
+                bn_idx += 1
+            elif hasattr(layer, "kernels"):
+                kernels_key = f"conv_w{conv_idx}_kernels"
+                if kernels_key in data:
+                    layer.kernels = data[kernels_key]
+                    layer.biases = data[f"conv_w{conv_idx}_biases"]
+                conv_idx += 1
 
     return model
 

@@ -1,0 +1,2 @@
+include kronyx/assets/*
+recursive-include kronyx *.pyi

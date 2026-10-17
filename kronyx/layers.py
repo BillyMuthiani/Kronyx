@@ -222,6 +222,13 @@ class BatchNormalization:
             self.input = x
             self.std = np.sqrt(self.running_variance + self.epsilon)
             self.normalized = (x - self.running_mean) / self.std
+            # Clear batch-statistic caches so backward takes the inference
+            # path (dinputs = dout * gamma / std).  Without this, a stale
+            # self.mean / self.var left over from a prior training forward
+            # would cause the training backward branch to execute, producing
+            # incorrect gradients that use batch stats instead of running stats.
+            self.mean = None
+            self.var = None
             return self.gamma * self.normalized + self.beta
 
     def backward(self, dvalues):
@@ -372,6 +379,13 @@ class Conv2D:
         if padding not in ("valid", "same"):
             raise ValueError(f"padding must be 'valid' or 'same', got '{padding}'")
 
+        valid_initializers = ("he_normal", "xavier_uniform", "lecun_normal")
+        if initializer not in valid_initializers:
+            raise ValueError(
+                f"Unknown initializer: {initializer}. "
+                f"Available: {', '.join(valid_initializers)}"
+            )
+
         self.filters = filters
         self.kernel_size = kernel_size
         self.stride = stride
@@ -449,6 +463,12 @@ class Conv2D:
         Returns:
             Gradient with respect to inputs of shape (batch, in_h, in_w, in_channels).
         """
+        if self.input is None or self.kernels is None:
+            raise RuntimeError(
+                "Conv2D.backward() called before forward(). "
+                "Run forward() first to initialise parameters and cache inputs."
+            )
+
         batch, in_h, in_w, in_channels = self.input.shape
         kernel_h, kernel_w, _, _ = self.kernels.shape
 
@@ -459,30 +479,44 @@ class Conv2D:
 
         out_h, out_w = dvalues.shape[1], dvalues.shape[2]
 
-        dkernels = np.zeros_like(self.kernels)
-        dbiases = np.zeros_like(self.biases)
-        dinputs_padded = np.zeros_like(self.padded_input)
-
+        # --- dbiases (already fully vectorised) ---
         dbiases = np.sum(dvalues, axis=(0, 1, 2))
 
+        # --- dkernels (fully vectorised via sliding_window_view + tensordot) ---
+        # sliding_window_view on the *last* axis (channels) places the channel
+        # dimension before the window dimensions — e.g. (batch, oh, ow, cin, kh, kw)
+        # — so we transpose to (batch, oh, ow, kh, kw, cin) to match the
+        # layout produced by direct slicing in forward().
+        patches = np.lib.stride_tricks.sliding_window_view(
+            self.padded_input, (kernel_h, kernel_w), axis=(1, 2)
+        )
+        # Apply stride selection so only forward-pass patch positions remain.
+        patches = patches[:, ::stride_h, ::stride_w, :, :, :]
+        # Transpose to (batch, out_h, out_w, kh, kw, in_channels).
+        patches = np.ascontiguousarray(patches.transpose(0, 1, 2, 4, 5, 3))
+        # patches shape: (batch, out_h, out_w, kh, kw, in_channels)
+        # dvalues shape: (batch, out_h, out_w, out_channels)
+        # tensordot contracts over (batch, out_h, out_w), yielding
+        # dkernels shape: (kh, kw, in_channels, out_channels)
+        dkernels = np.tensordot(patches, dvalues, axes=([0, 1, 2], [0, 1, 2]))
+
+        # --- dinputs_padded (vectorised over batch dimension) ---
+        # The original code looped over batch inside the (i, j) loop.  By
+        # using tensordot over the batch axis we collapse that inner loop:
+        #   dinputs_padded[b, oh*sh+kh, ow*sw+kw, cin] +=
+        #       sum_cout dvalues[b, oh, ow, cout] * kernels[kh, kw, cin, cout]
+        dinputs_padded = np.zeros_like(self.padded_input)
         for i in range(out_h):
             for j in range(out_w):
                 h_start = i * stride_h
                 h_end = h_start + kernel_h
                 w_start = j * stride_w
                 w_end = w_start + kernel_w
-
-                patch = self.padded_input[:, h_start:h_end, w_start:w_end, :]
-
-                for b in range(batch):
-                    dkernels += np.expand_dims(patch[b], -1) * np.expand_dims(
-                        dvalues[b, i, j], (0, 1, 2)
+                dinputs_padded[:, h_start:h_end, w_start:w_end, :] += (
+                    np.tensordot(
+                        dvalues[:, i, j, :], self.kernels, axes=(1, 3)
                     )
-
-                for b in range(batch):
-                    dinputs_padded[b, h_start:h_end, w_start:w_end, :] += np.tensordot(
-                        dvalues[b, i, j], self.kernels, axes=(0, 3)
-                    )
+                )
 
         self.dkernels = dkernels
         self.dbiases = dbiases

@@ -10,6 +10,7 @@ from kronyx.data import BatchLoader, Dataset, TensorDataset, train_test_split
 from kronyx.datasets import blobs, circles, iris, moons, spiral, xor
 from kronyx.exceptions import (
     ConfigurationError,
+    KronyxError,
     NeuralnetError,
     NotCompiledError,
     OptimizerError,
@@ -36,7 +37,7 @@ from kronyx.model import History, Sequential
 from kronyx.optimizers import SGD, Adam
 from kronyx.preprocessing import MinMaxScaler, OneHotEncoder, RobustScaler, StandardScaler
 from kronyx.regularizers import L2
-from kronyx.serialization import SerializationError, from_json, load_model
+from kronyx.serialization import SerializationError, from_json, load_model, save_model
 from kronyx.utils import set_seed
 from kronyx.version import __version__
 from kronyx.visualization import (
@@ -81,6 +82,7 @@ __all__ = [
     "History",
     # Exceptions
     "NeuralnetError",
+    "KronyxError",
     "ConfigurationError",
     "NotCompiledError",
     "ShapeError",
@@ -102,6 +104,7 @@ __all__ = [
     # Serialization
     "load_model",
     "from_json",
+    "save_model",
     "SerializationError",
     # Datasets
     "xor",
