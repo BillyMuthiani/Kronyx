@@ -14,7 +14,7 @@ pip install kronyx
 ## Install from Source
 
 ```bash
-git clone https://github.com/Kronyx/kronyx.git
+git clone https://github.com/BillyMuthiani/Kronyx.git
 cd kronyx
 pip install -e ".[dev]"
 ```

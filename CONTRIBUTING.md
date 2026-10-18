@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Kronyx! This document provides gu
 ## Development Setup
 
 ```bash
-git clone https://github.com/Kronyx/kronyx.git
+git clone https://github.com/BillyMuthiani/Kronyx.git
 cd kronyx
 pip install -e ".[dev]"
 ```

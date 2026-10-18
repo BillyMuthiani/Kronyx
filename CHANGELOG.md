@@ -46,10 +46,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `check_layer_gradient_weighted` and `check_layer_param_gradient_weighted`
   to the gradient-check utilities, using a non-trivial upstream-gradient tensor
   for more rigorous BatchNorm training-mode gradient verification
+- Optimizers (`SGD`, `Adam`) now support Conv2D trainable parameters
+  (`kernels`/`dkernels`, `biases`/`dbiases`) and BatchNormalization trainable
+  parameters (`gamma`/`dgamma`, `beta`/`dbeta`) via the shared `_trainable_params`
+  helper
 
 ### Phase 5
 
-- Added `MANIFEST.in` to ensure `kronyx/assets/` (logo.png, logo.svg) are
+- Added `MANIFEST.in` to ensure `kronyx/assets/` (logo.png) is
   included in wheel and sdist distributions
 - Fixed ruff F841 lint errors in `tests/test_optimizers.py` (unused variables
   in `test_sgd_zero_updates`)

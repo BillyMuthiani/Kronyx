@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current (v1.1.0)
+## Current (v1.1.1)
 
 - [x] Layers: Dense, Conv2D, BatchNormalization, Dropout, Flatten
 - [x] Activations: ReLU, Sigmoid, Tanh, Softmax
@@ -12,7 +12,7 @@
 - [x] Initializers: he_normal, xavier_uniform, lecun_normal
 - [x] Serialization: .krx format with save/load
 - [x] Model JSON export/import
-- [x] Type annotations (mypy clean)
+- [x] Type annotations (mypy clean - inline annotations on 63% of functions)
 - [x] Code style (Ruff clean)
 - [x] 496 unit tests
 - [x] Educational tools (plot, visualize, count_params, layer_summary)

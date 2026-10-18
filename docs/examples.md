@@ -27,11 +27,16 @@ python examples/iris_classification.py
 
 ## MNIST Digit Classification
 
-CNN for MNIST digits.
+The `mnist_classifier.py` example uses scikit-learn's `load_digits` dataset,
+which provides 8×8 grayscale digit images. Run it with:
 
 ```bash
 python examples/mnist_classifier.py
 ```
+
+> **Note:** This example uses the sklearn digits dataset (1797 samples, 8×8 images),
+> not the original MNIST database (28×28 images). Both are handwritten digit
+> classification tasks, but the input dimensions differ.
 
 ## Serialization
 

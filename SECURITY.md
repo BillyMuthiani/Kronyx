@@ -9,9 +9,9 @@
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities through [GitHub security advisories](https://github.com/Kronyx/kronyx/security/advisories).
+Please report security vulnerabilities through [GitHub security advisories](https://github.com/BillyMuthiani/Kronyx/security/advisories).
 
-Alternatively, you can open a [GitHub issue](https://github.com/Kronyx/kronyx/issues) with:
+Alternatively, you can open a [GitHub issue](https://github.com/BillyMuthiani/Kronyx/issues) with:
 
 - Description of the vulnerability
 - Steps to reproduce

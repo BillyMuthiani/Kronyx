@@ -20,7 +20,7 @@ A lightweight deep learning framework that makes neural networks easy to learn, 
 [![Python](https://img.shields.io/pypi/pyversions/kronyx?style=for-the-badge)](https://pypi.org/project/kronyx/)
 [![License](https://img.shields.io/github/license/BillyMuthiani/Kronyx?style=for-the-badge)](LICENSE)
 [![Tests](https://img.shields.io/github/actions/workflow/status/BillyMuthiani/Kronyx/tests.yml?style=for-the-badge&label=Tests)](https://github.com/BillyMuthiani/Kronyx/actions)
-[![Documentation](https://img.shields.io/badge/docs-online-blue?style=for-the-badge)](https://kronyx.github.io/kronyx)
+[![Documentation](https://img.shields.io/badge/docs-online-blue?style=for-the-badge)](https://github.com/BillyMuthiani/Kronyx/blob/main/README.md)
 
 </p>
 

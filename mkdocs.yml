@@ -1,8 +1,8 @@
 site_name: Kronyx
 site_description: Lightweight deep learning framework built from first principles using NumPy
-site_url: https://kronyx.github.io/kronyx
-repo_url: https://github.com/Kronyx/kronyx
-repo_name: Kronyx/kronyx
+site_url: https://billymuthiani.github.io/Kronyx
+repo_url: https://github.com/BillyMuthiani/Kronyx
+repo_name: BillyMuthiani/Kronyx
 edit_uri: edit/main/docs/
 
 theme:

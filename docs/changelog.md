@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Phase 5
 
-- Added `MANIFEST.in` to ensure `kronyx/assets/` (logo.png, logo.svg) are
+- Added `MANIFEST.in` to ensure `kronyx/assets/` (logo.png) is
   included in wheel and sdist distributions
 - Fixed ruff F841 lint errors in `tests/test_optimizers.py` (unused variables
   in `test_sgd_zero_updates`)

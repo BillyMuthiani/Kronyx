@@ -51,7 +51,7 @@ an individual is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported through [GitHub issues](https://github.com/Kronyx/kronyx/issues) or by
+reported through [GitHub issues](https://github.com/BillyMuthiani/Kronyx/issues) or by
 contacting the project maintainers directly.
 
 All complaints will be reviewed and investigated promptly and fairly.
