@@ -25,6 +25,8 @@ coverage.xml
 .venv/
 env/
 testpypi-env/
+clean-test/
+pypi-test/
 
 # OS
 .DS_Store
