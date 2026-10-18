@@ -73,8 +73,17 @@ jobs:
         run: python -m pip install --upgrade pip
 
       - name: Install package
-        run: pip install -e ".[dev]"
+        run: |
+          pip install -e ".[dev]"
+          # Pin pytest and pytest-cov to match the lint job versions
+          pip install pytest==8.4.2 pytest-cov==7.0.0
+
+      - name: Show versions
+        run: |
+          python --version
+          pip show pytest 2>&1 || true
+          pip show pytest-cov 2>&1 || true
+          pip show numpy 2>&1 || true
 
       - name: Run tests
-        run: |
-          pytest --cov=kronyx --cov-report=xml
+        run: pytest --cov=kronyx --cov-report=xml -v --tb=long

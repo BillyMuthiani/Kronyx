@@ -242,8 +242,8 @@ def load_model(filename):
 
     except FileNotFoundError:
         raise SerializationError(f"Model file not found: {filename}") from None
-    except (IsADirectoryError, PermissionError) as e:
-        if isinstance(e, PermissionError) and os.path.isdir(filename):
+    except (IsADirectoryError, PermissionError):
+        if os.path.isdir(filename):
             raise SerializationError(
                 f"Path is a directory, not a model file: {filename}"
             ) from None
